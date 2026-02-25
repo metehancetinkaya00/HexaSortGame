@@ -59,7 +59,7 @@ public class HexBoard : MonoBehaviour
     int piecesLeftInPack;
 
     // drag
-    HexCell dragFromCell;          // (şimdilik board içinden drag kapalı)
+    HexCell dragFromCell;          
     HandPiece dragFromPiece;
     GameObject dragGhost;
     GameObject hiddenDragSource;

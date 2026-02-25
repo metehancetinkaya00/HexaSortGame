@@ -113,7 +113,7 @@ public class ScoreManager : MonoBehaviour
         if (!levelText) return;
 
         int buildIndex = SceneManager.GetActiveScene().buildIndex;
-        int levelNumber = buildIndex + levelNumberOffset; // 0->1, 1->2...
+        int levelNumber = buildIndex + levelNumberOffset; //
 
         levelText.text = $"{levelPrefix} {levelNumber} {levelSuffix}";
     }
@@ -131,7 +131,7 @@ public class ScoreManager : MonoBehaviour
             HasWon = true;
             ForceSliderFull();
 
-            // fail coroutine varsa durdur
+       
             if (failRoutine != null) StopCoroutine(failRoutine);
             failRoutine = null;
 
@@ -145,7 +145,6 @@ public class ScoreManager : MonoBehaviour
         if (HasWon || HasFailed) return;
         HasFailed = true;
 
-        // win coroutine varsa durdur + win'i kapat
         if (winRoutine != null) StopCoroutine(winRoutine);
         winRoutine = null;
 
@@ -176,7 +175,7 @@ public class ScoreManager : MonoBehaviour
 
     IEnumerator WinSequence()
     {
-        // Particle önce
+ 
         if (winParticles)
         {
             winParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);

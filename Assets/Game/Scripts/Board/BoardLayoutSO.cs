@@ -4,7 +4,7 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Hexasort/Board Layout", fileName = "BoardLayout")]
 public class BoardLayoutSO : ScriptableObject
 {
-    [Tooltip("Each element is a row/group. Each row has its own list of axial coords (q,r).")]
+    
     public List<HexCoordList> cells = new();
 
     public bool Contains(int q, int r)

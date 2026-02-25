@@ -1159,7 +1159,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 1
+  m_Interactable: 0
   m_TargetGraphic: {fileID: 164243270}
   m_FillRect: {fileID: 284673058}
   m_HandleRect: {fileID: 164243269}
@@ -1514,7 +1514,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
   m_textAlignment: 65535
@@ -1547,7 +1547,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: -74.54205, w: 0}
+  m_margin: {x: 0, y: 0, z: -92.54797, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -1621,7 +1621,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82ff4cbf3731ab64c84c90eef0ad6b69, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HexBoard
-  duration: 0.2
   randomPack: {fileID: 11400000, guid: 887970993628fc547ab03db6f7b89160, type: 2}
   randomSeed: 0
   chooseRandomAnchorEachPack: 1
@@ -1652,6 +1651,8 @@ MonoBehaviour:
   scoreManager: {fileID: 296059240}
   dropIndicatorPrefab: {fileID: 6884843012821954442, guid: 80b2f66d70425304abd18dd82615c04e, type: 3}
   dropIndicatorY: 0.02
+  mergeMoveDuration: 0.2
+  mergeStepDelay: 0.01
 --- !u!4 &986565118
 Transform:
   m_ObjectHideFlags: 0
@@ -3002,7 +3003,7 @@ Camera:
   m_GameObject: {fileID: 2110715702}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 4
   m_BackGroundColor: {r: 0.7415522, g: 0.7950995, b: 0.8792453, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2

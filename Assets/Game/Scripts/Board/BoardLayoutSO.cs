@@ -23,7 +23,7 @@ public class BoardLayoutSO : ScriptableObject
         return false;
     }
 
-    // İstersen HexBoard için düz liste verelim
+  
     public IEnumerable<Hex> EnumerateHexes()
     {
         for (int i = 0; i < cells.Count; i++)

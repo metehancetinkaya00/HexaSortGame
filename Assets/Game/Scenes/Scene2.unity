@@ -1111,7 +1111,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82ff4cbf3731ab64c84c90eef0ad6b69, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HexBoard
-  duration: 0.2
   randomPack: {fileID: 11400000, guid: f985f15151bf6a24ba2551e03daea6bc, type: 2}
   randomSeed: 0
   chooseRandomAnchorEachPack: 1
@@ -1142,6 +1141,8 @@ MonoBehaviour:
   scoreManager: {fileID: 2130977967}
   dropIndicatorPrefab: {fileID: 6884843012821954442, guid: 80b2f66d70425304abd18dd82615c04e, type: 3}
   dropIndicatorY: 0.02
+  mergeMoveDuration: 0.2
+  mergeStepDelay: 0.01
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -1378,7 +1379,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 4.600006, y: 0}
+  m_AnchoredPosition: {x: 4.5999756, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &568029393
@@ -2617,7 +2618,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 1
+  m_Interactable: 0
   m_TargetGraphic: {fileID: 410563958}
   m_FillRect: {fileID: 568029392}
   m_HandleRect: {fileID: 410563957}

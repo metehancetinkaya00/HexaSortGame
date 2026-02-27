@@ -4,11 +4,12 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Hexasort/Board Layout", fileName = "BoardLayout")]
 public class BoardLayoutSO : ScriptableObject
 {
-    
     public List<HexCoordList> cells = new();
 
     public bool Contains(int q, int r)
     {
+        if (cells == null) return false;
+
         for (int i = 0; i < cells.Count; i++)
         {
             var row = cells[i];
@@ -16,16 +17,19 @@ public class BoardLayoutSO : ScriptableObject
 
             for (int j = 0; j < row.items.Count; j++)
             {
-                if ((int)row.items[j].q == q && (int)row.items[j].r == r)
+                Hex h = row.items[j].ToHex();
+                if (h.q == q && h.r == r)
                     return true;
             }
         }
+
         return false;
     }
 
-  
     public IEnumerable<Hex> EnumerateHexes()
     {
+        if (cells == null) yield break;
+
         for (int i = 0; i < cells.Count; i++)
         {
             var row = cells[i];
@@ -55,5 +59,9 @@ public struct HexCoord
         this.r = r;
     }
 
-    public Hex ToHex() => new Hex(q, r);
+    public Hex ToHex()
+    {
+      
+        return new Hex(Mathf.RoundToInt(q), Mathf.RoundToInt(r));
+    }
 }

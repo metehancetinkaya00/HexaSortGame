@@ -1,15 +1,15 @@
-﻿using UnityEngine;
+﻿using System.Collections;
 using TMPro;
-using UnityEngine.UI;
+using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Collections;
+using UnityEngine.UI;
 
 public class ScoreManager : MonoBehaviour
 {
     [Header("UI")]
     public TMP_Text scoreText;
     public Slider progressSlider;
-    public bool sliderUseNormalized = true;
+    public bool sliderUseNormalized = true; 
 
     [Header("Slider Smooth")]
     public bool smoothSlider = true;
@@ -26,7 +26,7 @@ public class ScoreManager : MonoBehaviour
     public GameObject winObject;
 
     [Header("Fail")]
-    public GameObject failedObject; // fail panel
+    public GameObject failedObject;
 
     [Header("Win FX & Anim")]
     public ParticleSystem winParticles;
@@ -44,36 +44,17 @@ public class ScoreManager : MonoBehaviour
     public bool HasWon { get; private set; }
     public bool HasFailed { get; private set; }
 
-    CanvasGroup winCanvasGroup;
-    CanvasGroup failCanvasGroup;
-    Coroutine winRoutine;
-    Coroutine failRoutine;
+    private CanvasGroup winCanvasGroup;
+    private CanvasGroup failCanvasGroup;
+    private Coroutine winRoutine;
+    private Coroutine failRoutine;
 
-    float sliderTargetValue;
+    private float sliderTargetValue;
 
     void Start()
     {
-        // Win panel init
-        if (winObject)
-        {
-            winCanvasGroup = winObject.GetComponent<CanvasGroup>();
-            if (!winCanvasGroup) winCanvasGroup = winObject.AddComponent<CanvasGroup>();
-
-            winCanvasGroup.alpha = 0f;
-            winObject.transform.localScale = Vector3.one * startScale;
-            winObject.SetActive(false);
-        }
-
-        // Fail panel init
-        if (failedObject)
-        {
-            failCanvasGroup = failedObject.GetComponent<CanvasGroup>();
-            if (!failCanvasGroup) failCanvasGroup = failedObject.AddComponent<CanvasGroup>();
-
-            failCanvasGroup.alpha = 0f;
-            failedObject.transform.localScale = Vector3.one * failStartScale;
-            failedObject.SetActive(false);
-        }
+        PreparePanel(winObject, startScale, out winCanvasGroup);
+        PreparePanel(failedObject, failStartScale, out failCanvasGroup);
 
         UpdateLevelText();
         SetupSlider();
@@ -92,7 +73,20 @@ public class ScoreManager : MonoBehaviour
         }
     }
 
-    void SetupSlider()
+    private void PreparePanel(GameObject panel, float initialScale, out CanvasGroup cg)
+    {
+        cg = null;
+        if (!panel) return;
+
+        cg = panel.GetComponent<CanvasGroup>();
+        if (!cg) cg = panel.AddComponent<CanvasGroup>();
+
+        cg.alpha = 0f;
+        panel.transform.localScale = Vector3.one * initialScale;
+        panel.SetActive(false);
+    }
+
+    private void SetupSlider()
     {
         if (!progressSlider) return;
 
@@ -108,13 +102,12 @@ public class ScoreManager : MonoBehaviour
         }
     }
 
-    void UpdateLevelText()
+    private void UpdateLevelText()
     {
         if (!levelText) return;
 
         int buildIndex = SceneManager.GetActiveScene().buildIndex;
-        int levelNumber = buildIndex + levelNumberOffset; //
-
+        int levelNumber = buildIndex + levelNumberOffset;
         levelText.text = $"{levelPrefix} {levelNumber} {levelSuffix}";
     }
 
@@ -131,7 +124,6 @@ public class ScoreManager : MonoBehaviour
             HasWon = true;
             ForceSliderFull();
 
-       
             if (failRoutine != null) StopCoroutine(failRoutine);
             failRoutine = null;
 
@@ -143,6 +135,7 @@ public class ScoreManager : MonoBehaviour
     public void ShowFailed()
     {
         if (HasWon || HasFailed) return;
+
         HasFailed = true;
 
         if (winRoutine != null) StopCoroutine(winRoutine);
@@ -156,7 +149,7 @@ public class ScoreManager : MonoBehaviour
         failRoutine = StartCoroutine(FailSequence());
     }
 
-    void ForceSliderFull()
+    private void ForceSliderFull()
     {
         if (!progressSlider) return;
 
@@ -173,9 +166,8 @@ public class ScoreManager : MonoBehaviour
         }
     }
 
-    IEnumerator WinSequence()
+    private IEnumerator WinSequence()
     {
- 
         if (winParticles)
         {
             winParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -188,80 +180,54 @@ public class ScoreManager : MonoBehaviour
         if (!winObject) yield break;
 
         winObject.SetActive(true);
-
         if (!winCanvasGroup) winCanvasGroup = winObject.GetComponent<CanvasGroup>();
-        if (!winCanvasGroup) winCanvasGroup = winObject.AddComponent<CanvasGroup>();
 
-        winCanvasGroup.alpha = 0f;
-        winObject.transform.localScale = Vector3.one * startScale;
-
-        float fadeT = 0f;
-        float scaleT = 0f;
-
-        while (fadeT < fadeDuration || scaleT < scaleDuration)
-        {
-            if (fadeT < fadeDuration)
-            {
-                fadeT += Time.unscaledDeltaTime;
-                winCanvasGroup.alpha = Mathf.Clamp01(fadeT / fadeDuration);
-            }
-
-            if (scaleT < scaleDuration)
-            {
-                scaleT += Time.unscaledDeltaTime;
-                float s = Mathf.Clamp01(scaleT / scaleDuration);
-                float eased = EaseOutBack(s);
-                float currentScale = Mathf.Lerp(startScale, 1f, eased);
-                winObject.transform.localScale = Vector3.one * currentScale;
-            }
-
-            yield return null;
-        }
-
-        winCanvasGroup.alpha = 1f;
-        winObject.transform.localScale = Vector3.one;
+        yield return AnimatePanel(winObject, winCanvasGroup, startScale, fadeDuration, scaleDuration);
     }
 
-    IEnumerator FailSequence()
+    private IEnumerator FailSequence()
     {
         if (!failedObject) yield break;
 
         failedObject.SetActive(true);
-
         if (!failCanvasGroup) failCanvasGroup = failedObject.GetComponent<CanvasGroup>();
-        if (!failCanvasGroup) failCanvasGroup = failedObject.AddComponent<CanvasGroup>();
 
-        failCanvasGroup.alpha = 0f;
-        failedObject.transform.localScale = Vector3.one * failStartScale;
+        yield return AnimatePanel(failedObject, failCanvasGroup, failStartScale, failFadeDuration, failScaleDuration);
+    }
+
+    private IEnumerator AnimatePanel(GameObject panel, CanvasGroup cg, float fromScale, float fadeDur, float scaleDur)
+    {
+        cg.alpha = 0f;
+        panel.transform.localScale = Vector3.one * fromScale;
 
         float fadeT = 0f;
         float scaleT = 0f;
 
-        while (fadeT < failFadeDuration || scaleT < failScaleDuration)
+        while (fadeT < fadeDur || scaleT < scaleDur)
         {
-            if (fadeT < failFadeDuration)
+            if (fadeT < fadeDur)
             {
                 fadeT += Time.unscaledDeltaTime;
-                failCanvasGroup.alpha = Mathf.Clamp01(fadeT / failFadeDuration);
+                cg.alpha = Mathf.Clamp01(fadeT / fadeDur);
             }
 
-            if (scaleT < failScaleDuration)
+            if (scaleT < scaleDur)
             {
                 scaleT += Time.unscaledDeltaTime;
-                float s = Mathf.Clamp01(scaleT / failScaleDuration);
-                float eased = EaseOutBack(s);
-                float currentScale = Mathf.Lerp(failStartScale, 1f, eased);
-                failedObject.transform.localScale = Vector3.one * currentScale;
+                float t = Mathf.Clamp01(scaleT / scaleDur);
+                float eased = EaseOutBack(t);
+                float s = Mathf.Lerp(fromScale, 1f, eased);
+                panel.transform.localScale = Vector3.one * s;
             }
 
             yield return null;
         }
 
-        failCanvasGroup.alpha = 1f;
-        failedObject.transform.localScale = Vector3.one;
+        cg.alpha = 1f;
+        panel.transform.localScale = Vector3.one;
     }
 
-    float EaseOutBack(float x)
+    private float EaseOutBack(float x)
     {
         const float c1 = 1.70158f;
         const float c3 = c1 + 1f;
@@ -275,39 +241,21 @@ public class ScoreManager : MonoBehaviour
         HasFailed = false;
 
         if (winRoutine != null) StopCoroutine(winRoutine);
-        winRoutine = null;
-
         if (failRoutine != null) StopCoroutine(failRoutine);
+        winRoutine = null;
         failRoutine = null;
 
         if (winParticles)
             winParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
-        if (winObject)
-        {
-            if (!winCanvasGroup) winCanvasGroup = winObject.GetComponent<CanvasGroup>();
-            if (!winCanvasGroup) winCanvasGroup = winObject.AddComponent<CanvasGroup>();
-
-            winCanvasGroup.alpha = 0f;
-            winObject.transform.localScale = Vector3.one * startScale;
-            winObject.SetActive(false);
-        }
-
-        if (failedObject)
-        {
-            if (!failCanvasGroup) failCanvasGroup = failedObject.GetComponent<CanvasGroup>();
-            if (!failCanvasGroup) failCanvasGroup = failedObject.AddComponent<CanvasGroup>();
-
-            failCanvasGroup.alpha = 0f;
-            failedObject.transform.localScale = Vector3.one * failStartScale;
-            failedObject.SetActive(false);
-        }
+        PreparePanel(winObject, startScale, out winCanvasGroup);
+        PreparePanel(failedObject, failStartScale, out failCanvasGroup);
 
         SetupSlider();
         RefreshUI(immediateSlider: true);
     }
 
-    void RefreshUI(bool immediateSlider)
+    private void RefreshUI(bool immediateSlider)
     {
         if (scoreText)
             scoreText.text = $"Score: {Score}/{targetScore}";

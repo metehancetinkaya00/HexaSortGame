@@ -7,7 +7,8 @@ public class HandPiece : MonoBehaviour
 
     public void SetTiles(List<TileColor> t)
     {
-        tiles = t;
+       
+        tiles = (t != null) ? new List<TileColor>(t) : new List<TileColor>();
         name = $"HandPiece ({tiles.Count})";
     }
 }

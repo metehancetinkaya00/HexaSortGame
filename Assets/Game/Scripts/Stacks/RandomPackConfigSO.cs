@@ -12,7 +12,7 @@ public class RandomPackConfigSO : ScriptableObject
     [Min(1)] public int minHexPerPiece = 3;
     [Min(1)] public int maxHexPerPiece = 8;
 
-    [Header("Allowed Colors + Weights")]
+    [Header("Allowed Colors + Weights (0 = never)")]
     public List<ColorWeight> weights = new();
 
     [Serializable]
@@ -24,6 +24,8 @@ public class RandomPackConfigSO : ScriptableObject
 
     public List<TileColor> GeneratePiece(System.Random rng)
     {
+        if (rng == null) rng = new System.Random();
+
         int min = Mathf.Max(1, minHexPerPiece);
         int max = Mathf.Max(min, maxHexPerPiece);
         int count = rng.Next(min, max + 1);
@@ -35,26 +37,37 @@ public class RandomPackConfigSO : ScriptableObject
         return result;
     }
 
-    TileColor PickWeightedColor(System.Random rng)
+    private TileColor PickWeightedColor(System.Random rng)
     {
+        
+        if (weights == null || weights.Count == 0)
+            return PickAnyColor(rng);
+
         float total = 0f;
         for (int i = 0; i < weights.Count; i++)
             total += Mathf.Max(0f, weights[i].weight);
 
-        if (total <= 0.0001f)
-            return default;
 
-        float r = (float)(rng.NextDouble() * total);
+        if (total <= 0.0001f)
+            return PickAnyColor(rng);
+
+        float roll = (float)(rng.NextDouble() * total);
         float acc = 0f;
 
         for (int i = 0; i < weights.Count; i++)
         {
             float w = Mathf.Max(0f, weights[i].weight);
             acc += w;
-            if (r <= acc)
+            if (roll <= acc)
                 return weights[i].color;
         }
 
         return weights[weights.Count - 1].color;
+    }
+
+    private static TileColor PickAnyColor(System.Random rng)
+    {
+        var values = (TileColor[])Enum.GetValues(typeof(TileColor));
+        return values[rng.Next(0, values.Length)];
     }
 }

@@ -40,9 +40,9 @@ public class ScoreManager : MonoBehaviour
     public float failScaleDuration = 0.35f;
     public float failStartScale = 0.7f;
 
-    public int Score { get; private set; }
-    public bool HasWon { get; private set; }
-    public bool HasFailed { get; private set; }
+    public int Score;
+    public bool HasWon;
+    public bool HasFailed;
 
     private CanvasGroup winCanvasGroup;
     private CanvasGroup failCanvasGroup;

@@ -58,23 +58,23 @@ public class HexBoard : MonoBehaviour
     private int piecesLeftInPack;
 
     // drag
-    private HandPiece dragFromPiece;
-    private GameObject dragGhost;
-    private GameObject hiddenDragSource;
+    private HandPiece dragSourcePiece;
+    private GameObject dragGhostObject;
+    private GameObject hiddenSourceObject;
 
     // input
-    private Vector2 lastPointerPos;
+    private Vector2 lastPointerScreenPos;
     private bool hasPointerPos;
 
     // resolve
     private bool resolveRunning;
     private bool resolveRequested;
     private Queue<HexCell> resolveQueue = new Queue<HexCell>();
-    private HashSet<HexCell> queued = new HashSet<HexCell>();
+    private HashSet<HexCell> queuedCells = new HashSet<HexCell>();
     private HashSet<HexCell> busyCells = new HashSet<HexCell>();
 
     // preview
-    private GameObject dropIndicator;
+    private GameObject dropIndicatorObject;
 
     private bool hasFailed;
 
@@ -94,8 +94,10 @@ public class HexBoard : MonoBehaviour
 
         CreateDropIndicator();
 
-        for (int i = 0; i < setAnchors.Length; i++)
-            EnsureHandSlots(setAnchors[i], HandSlotCount);
+        for (int anchorIndex = 0; anchorIndex < setAnchors.Length; anchorIndex++)
+        {
+            EnsureHandSlots(setAnchors[anchorIndex], HandSlotCount);
+        }
 
         BuildBoard();
         SyncAllCells();
@@ -105,33 +107,88 @@ public class HexBoard : MonoBehaviour
 
     private bool ValidateSetup()
     {
-        if (Camera.main == null) { Debug.LogError("Main Camera missing / not tagged MainCamera."); return false; }
-        if (randomPack == null) { Debug.LogError("randomPack not assigned."); return false; }
-        if (setAnchors == null || setAnchors.Length == 0) { Debug.LogError("setAnchors missing."); return false; }
-        for (int i = 0; i < setAnchors.Length; i++)
-            if (setAnchors[i] == null) { Debug.LogError("setAnchors has null element."); return false; }
+        if (Camera.main == null)
+        {
+            Debug.LogError("Main Camera missing / not tagged MainCamera.");
+            return false;
+        }
 
-        if (cellsRoot == null) { Debug.LogError("cellsRoot not assigned."); return false; }
-        if (tileRoot == null) { Debug.LogError("tileRoot not assigned."); return false; }
-        if (cellPrefab == null) { Debug.LogError("cellPrefab not assigned."); return false; }
-        if (cellPrefab.GetComponentInChildren<Collider>() == null) { Debug.LogError("cellPrefab needs Collider for raycast."); return false; }
-        if (tilePrefab == null) { Debug.LogError("tilePrefab not assigned."); return false; }
-        if (colorMaterials == null || colorMaterials.Length == 0) { Debug.LogError("colorMaterials missing/empty."); return false; }
+        if (randomPack == null)
+        {
+            Debug.LogError("randomPack not assigned.");
+            return false;
+        }
+
+        if (setAnchors == null || setAnchors.Length == 0)
+        {
+            Debug.LogError("setAnchors missing.");
+            return false;
+        }
+
+        for (int anchorIndex = 0; anchorIndex < setAnchors.Length; anchorIndex++)
+        {
+            if (setAnchors[anchorIndex] == null)
+            {
+                Debug.LogError("setAnchors has null element.");
+                return false;
+            }
+        }
+
+        if (cellsRoot == null)
+        {
+            Debug.LogError("cellsRoot not assigned.");
+            return false;
+        }
+
+        if (tileRoot == null)
+        {
+            Debug.LogError("tileRoot not assigned.");
+            return false;
+        }
+
+        if (cellPrefab == null)
+        {
+            Debug.LogError("cellPrefab not assigned.");
+            return false;
+        }
+
+        if (cellPrefab.GetComponentInChildren<Collider>() == null)
+        {
+            Debug.LogError("cellPrefab needs Collider for raycast.");
+            return false;
+        }
+
+        if (tilePrefab == null)
+        {
+            Debug.LogError("tilePrefab not assigned.");
+            return false;
+        }
+
+        if (colorMaterials == null || colorMaterials.Length == 0)
+        {
+            Debug.LogError("colorMaterials missing/empty.");
+            return false;
+        }
+
         return true;
     }
 
     private void CreateDropIndicator()
     {
-        if (dropIndicatorPrefab == null) return;
+        if (dropIndicatorPrefab == null)
+        {
+            return;
+        }
 
-        dropIndicator = Instantiate(dropIndicatorPrefab);
-        dropIndicator.name = "DropIndicator";
-        dropIndicator.SetActive(false);
+        dropIndicatorObject = Instantiate(dropIndicatorPrefab);
+        dropIndicatorObject.name = "DropIndicator";
+        dropIndicatorObject.SetActive(false);
 
-   
-        Collider[] cols = dropIndicator.GetComponentsInChildren<Collider>(true);
-        for (int i = 0; i < cols.Length; i++)
-            cols[i].enabled = false;
+        Collider[] colliders = dropIndicatorObject.GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            colliders[i].enabled = false;
+        }
     }
 
     // ---------------- Board ----------------
@@ -143,25 +200,29 @@ public class HexBoard : MonoBehaviour
 
         if (boardLayout != null && boardLayout.cells != null && boardLayout.cells.Count > 0)
         {
-            foreach (var h in boardLayout.EnumerateHexes())
-                coords.Add(h);
+            foreach (var hex in boardLayout.EnumerateHexes())
+            {
+                coords.Add(hex);
+            }
         }
         else
         {
-            foreach (var h in Hex.Spiral(Hex.zero, 0, boardRadius))
-                coords.Add(h);
+            foreach (var hex in Hex.Spiral(Hex.zero, 0, boardRadius))
+            {
+                coords.Add(hex);
+            }
         }
 
-        for (int i = 0; i < coords.Count; i++)
+        for (int coordIndex = 0; coordIndex < coords.Count; coordIndex++)
         {
-            Hex h = coords[i];
+            Hex hex = coords[coordIndex];
 
-            HexCell cell = Instantiate(cellPrefab, cellsRoot);
-            cell.Init(h);
-            cell.transform.position = h.ToWorld(yCell);
-            cell.Stack.SetTiles(System.Array.Empty<TileColor>());
+            HexCell cellInstance = Instantiate(cellPrefab, cellsRoot);
+            cellInstance.Init(hex);
+            cellInstance.transform.position = hex.ToWorld(yCell);
+            cellInstance.Stack.SetTiles(System.Array.Empty<TileColor>());
 
-            cells[h] = cell;
+            cells[hex] = cellInstance;
         }
     }
 
@@ -170,12 +231,15 @@ public class HexBoard : MonoBehaviour
     {
         if (chooseRandomAnchorEachPack)
         {
-            int idx = rng.Next(0, setAnchors.Length);
-            activeAnchor = setAnchors[idx];
+            int anchorIndex = rng.Next(0, setAnchors.Length);
+            activeAnchor = setAnchors[anchorIndex];
         }
         else
         {
-            if (activeAnchor == null) activeAnchor = setAnchors[0];
+            if (activeAnchor == null)
+            {
+                activeAnchor = setAnchors[0];
+            }
         }
 
         int slotCount = HandSlotCount;
@@ -184,13 +248,16 @@ public class HexBoard : MonoBehaviour
         EnsureHandSlots(activeAnchor, slotCount);
         ClearAnchorHand(activeAnchor, slotCount);
 
-        for (int i = 0; i < slotCount; i++)
+        for (int slotIndex = 0; slotIndex < slotCount; slotIndex++)
         {
-            Transform slot = activeAnchor.Find("HandSlot" + i);
-            if (!slot) continue;
+            Transform slotTransform = activeAnchor.Find("HandSlot" + slotIndex);
+            if (!slotTransform)
+            {
+                continue;
+            }
 
             List<TileColor> tiles = randomPack.GeneratePiece(rng);
-            SpawnHandPiece(slot, tiles);
+            SpawnHandPiece(slotTransform, tiles);
         }
     }
 
@@ -198,129 +265,169 @@ public class HexBoard : MonoBehaviour
     {
         float center = (slotCount - 1) * 0.5f;
 
-        for (int i = 0; i < slotCount; i++)
+        for (int slotIndex = 0; slotIndex < slotCount; slotIndex++)
         {
-            Transform t = anchor.Find("HandSlot" + i);
-            if (!t)
+            Transform slotTransform = anchor.Find("HandSlot" + slotIndex);
+            if (!slotTransform)
             {
-                GameObject go = new GameObject("HandSlot" + i);
-                t = go.transform;
-                t.SetParent(anchor, false);
+                GameObject slotObject = new GameObject("HandSlot" + slotIndex);
+                slotTransform = slotObject.transform;
+                slotTransform.SetParent(anchor, false);
             }
 
-            t.localPosition = new Vector3((i - center) * handSlotSpacing, 0f, 0f);
-            t.localRotation = Quaternion.identity;
+            slotTransform.localPosition = new Vector3((slotIndex - center) * handSlotSpacing, 0f, 0f);
+            slotTransform.localRotation = Quaternion.identity;
         }
     }
 
     private void ClearAnchorHand(Transform anchor, int slotCount)
     {
-        for (int i = 0; i < slotCount; i++)
+        for (int slotIndex = 0; slotIndex < slotCount; slotIndex++)
         {
-            Transform slot = anchor.Find("HandSlot" + i);
-            if (!slot) continue;
+            Transform slotTransform = anchor.Find("HandSlot" + slotIndex);
+            if (!slotTransform)
+            {
+                continue;
+            }
 
-            for (int c = slot.childCount - 1; c >= 0; c--)
-                Destroy(slot.GetChild(c).gameObject);
+            for (int childIndex = slotTransform.childCount - 1; childIndex >= 0; childIndex--)
+            {
+                Destroy(slotTransform.GetChild(childIndex).gameObject);
+            }
         }
     }
 
-    private void SpawnHandPiece(Transform slot, List<TileColor> tiles)
+    private void SpawnHandPiece(Transform slotTransform, List<TileColor> tiles)
     {
-        GameObject go = new GameObject("HandPiece");
-        go.transform.SetParent(slot, false);
-        go.transform.localPosition = Vector3.zero;
-        go.transform.localRotation = Quaternion.identity;
+        GameObject pieceObject = new GameObject("HandPiece");
+        pieceObject.transform.SetParent(slotTransform, false);
+        pieceObject.transform.localPosition = Vector3.zero;
+        pieceObject.transform.localRotation = Quaternion.identity;
 
-        BoxCollider box = go.AddComponent<BoxCollider>();
-        box.size = handPieceColliderSize;
-        box.center = new Vector3(0, handPieceColliderSize.y * 0.5f, 0);
+        BoxCollider boxCollider = pieceObject.AddComponent<BoxCollider>();
+        boxCollider.size = handPieceColliderSize;
+        boxCollider.center = new Vector3(0, handPieceColliderSize.y * 0.5f, 0);
 
-        HandPiece piece = go.AddComponent<HandPiece>();
+        HandPiece piece = pieceObject.AddComponent<HandPiece>();
         piece.SetTiles(tiles);
 
-        BuildGhostFromTiles(piece.tiles, go.transform);
+        BuildGhostFromTiles(piece.tiles, pieceObject.transform);
     }
 
     // ---------------- Update / Input ----------------
     void Update()
     {
-        if (hasFailed) return;
-
-        if (TryGetPointerScreenPos(out Vector2 sp))
+        if (hasFailed)
         {
-            lastPointerPos = sp;
+            return;
+        }
+
+        if (TryGetPointerScreenPos(out Vector2 pointerScreenPos))
+        {
+            lastPointerScreenPos = pointerScreenPos;
             hasPointerPos = true;
         }
 
-        if (!hasPointerPos) return;
+        if (!hasPointerPos)
+        {
+            return;
+        }
 
-        if (WasPressedThisFrame()) TryBeginDrag(lastPointerPos);
-        if (IsPressed()) DragUpdate(lastPointerPos);
-        if (WasReleasedThisFrame()) TryEndDrag(lastPointerPos);
+        if (WasPressedThisFrame())
+        {
+            TryBeginDrag(lastPointerScreenPos);
+        }
+
+        if (IsPressed())
+        {
+            DragUpdate(lastPointerScreenPos);
+        }
+
+        if (WasReleasedThisFrame())
+        {
+            TryEndDrag(lastPointerScreenPos);
+        }
     }
 
-    private bool TryGetPointerScreenPos(out Vector2 pos)
+    private bool TryGetPointerScreenPos(out Vector2 pointerScreenPos)
     {
         if (Touchscreen.current != null)
         {
-            pos = Touchscreen.current.primaryTouch.position.ReadValue();
+            pointerScreenPos = Touchscreen.current.primaryTouch.position.ReadValue();
             return true;
         }
 
         if (Mouse.current != null)
         {
-            pos = Mouse.current.position.ReadValue();
+            pointerScreenPos = Mouse.current.position.ReadValue();
             return true;
         }
 
-        pos = default;
+        pointerScreenPos = default;
         return false;
     }
 
     private bool WasPressedThisFrame()
     {
-        if (Touchscreen.current != null) return Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
+        if (Touchscreen.current != null)
+        {
+            return Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
+        }
+
         return Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
     }
 
     private bool WasReleasedThisFrame()
     {
-        if (Touchscreen.current != null) return Touchscreen.current.primaryTouch.press.wasReleasedThisFrame;
+        if (Touchscreen.current != null)
+        {
+            return Touchscreen.current.primaryTouch.press.wasReleasedThisFrame;
+        }
+
         return Mouse.current != null && Mouse.current.leftButton.wasReleasedThisFrame;
     }
 
     private bool IsPressed()
     {
-        if (Touchscreen.current != null) return Touchscreen.current.primaryTouch.press.isPressed;
+        if (Touchscreen.current != null)
+        {
+            return Touchscreen.current.primaryTouch.press.isPressed;
+        }
+
         return Mouse.current != null && Mouse.current.leftButton.isPressed;
     }
 
     // ---------------- Drag ----------------
     private void TryBeginDrag(Vector2 screenPos)
     {
-        if (dragGhost != null) return;
-
-        if (RaycastHandPiece(screenPos, out HandPiece piece) && piece != null && piece.tiles != null && piece.tiles.Count > 0)
+        if (dragGhostObject != null)
         {
-            dragFromPiece = piece;
+            return;
+        }
 
-            hiddenDragSource = piece.gameObject;
-            SetHandPieceVisible(hiddenDragSource, false);
+        if (RaycastHandPiece(screenPos, out HandPiece hitPiece) &&
+            hitPiece != null &&
+            hitPiece.tiles != null &&
+            hitPiece.tiles.Count > 0)
+        {
+            dragSourcePiece = hitPiece;
 
-            dragGhost = new GameObject("DragGhost_Piece");
+            hiddenSourceObject = hitPiece.gameObject;
+            SetHandPieceVisible(hiddenSourceObject, false);
 
-            Vector3 p = piece.transform.position;
-            dragGhost.transform.position = new Vector3(p.x, dragGhostY, p.z);
+            dragGhostObject = new GameObject("DragGhost_Piece");
 
-            BuildGhostFromTiles(piece.tiles, dragGhost.transform);
+            Vector3 sourceWorldPos = hitPiece.transform.position;
+            dragGhostObject.transform.position = new Vector3(sourceWorldPos.x, dragGhostY, sourceWorldPos.z);
+
+            BuildGhostFromTiles(hitPiece.tiles, dragGhostObject.transform);
             UpdateDropPreview(screenPos);
         }
     }
 
     private void DragUpdate(Vector2 screenPos)
     {
-        if (!dragGhost)
+        if (!dragGhostObject)
         {
             HideDropPreview();
             return;
@@ -331,8 +438,8 @@ public class HexBoard : MonoBehaviour
 
         if (plane.Raycast(ray, out float enter))
         {
-            Vector3 p = ray.GetPoint(enter);
-            dragGhost.transform.position = new Vector3(p.x, dragGhostY, p.z);
+            Vector3 hitPoint = ray.GetPoint(enter);
+            dragGhostObject.transform.position = new Vector3(hitPoint.x, dragGhostY, hitPoint.z);
         }
 
         UpdateDropPreview(screenPos);
@@ -342,51 +449,53 @@ public class HexBoard : MonoBehaviour
     {
         HideDropPreview();
 
-        if (dragFromPiece == null)
+        if (dragSourcePiece == null)
         {
             CleanupDrag();
             return;
         }
 
-        if (!RaycastCell(screenPos, out HexCell toCell) || toCell == null)
+        if (!RaycastCell(screenPos, out HexCell targetCell) || targetCell == null)
         {
             CleanupDrag();
             return;
         }
 
-        if (!CanDropOnCell(toCell))
+        if (!CanDropOnCell(targetCell))
         {
             CleanupDrag();
             return;
         }
 
-        List<TileColor> tiles = dragFromPiece.tiles;
+        List<TileColor> tiles = dragSourcePiece.tiles;
         if (tiles == null || tiles.Count == 0)
         {
             CleanupDrag();
             return;
         }
 
-        if (toCell.Stack.Count + tiles.Count > maxStackHeight)
+        if (targetCell.Stack.Count + tiles.Count > maxStackHeight)
         {
             CleanupDrag();
             return;
         }
 
         // drop
-        toCell.Stack.PushMany(tiles);
-        SyncCellViews(toCell);
+        targetCell.Stack.PushMany(tiles);
+        SyncCellViews(targetCell);
 
-        Destroy(dragFromPiece.gameObject);
-        dragFromPiece = null;
+        Destroy(dragSourcePiece.gameObject);
+        dragSourcePiece = null;
 
         CleanupDrag();
 
         piecesLeftInPack--;
         if (piecesLeftInPack <= 0)
+        {
             GenerateNextPack();
+        }
 
-        EnqueueResolveAround(toCell);
+        EnqueueResolveAround(targetCell);
         RequestResolve();
 
         CheckFailNow();
@@ -394,89 +503,127 @@ public class HexBoard : MonoBehaviour
 
     private void CleanupDrag()
     {
-        if (dragGhost) Destroy(dragGhost);
-        dragGhost = null;
-
-        if (hiddenDragSource != null)
+        if (dragGhostObject)
         {
-            SetHandPieceVisible(hiddenDragSource, true);
-            hiddenDragSource = null;
+            Destroy(dragGhostObject);
+        }
+        dragGhostObject = null;
+
+        if (hiddenSourceObject != null)
+        {
+            SetHandPieceVisible(hiddenSourceObject, true);
+            hiddenSourceObject = null;
         }
 
-        dragFromPiece = null;
+        dragSourcePiece = null;
         HideDropPreview();
     }
 
-    private void SetHandPieceVisible(GameObject go, bool visible)
+    private void SetHandPieceVisible(GameObject pieceObject, bool visible)
     {
-        if (!go) return;
+        if (!pieceObject)
+        {
+            return;
+        }
 
-        Renderer[] rs = go.GetComponentsInChildren<Renderer>(true);
-        for (int i = 0; i < rs.Length; i++) rs[i].enabled = visible;
+        Renderer[] renderers = pieceObject.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            renderers[i].enabled = visible;
+        }
 
-        Collider[] cs = go.GetComponentsInChildren<Collider>(true);
-        for (int i = 0; i < cs.Length; i++) cs[i].enabled = visible;
+        Collider[] colliders = pieceObject.GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            colliders[i].enabled = visible;
+        }
     }
 
     // ---------------- Drop Preview ----------------
     private bool CanDropOnCell(HexCell cell)
     {
-        if (cell == null || cell.Stack == null) return false;
-        if (busyCells.Contains(cell)) return false;
-        if (!cell.Stack.IsEmpty) return false;
+        if (cell == null || cell.Stack == null)
+        {
+            return false;
+        }
+
+        if (busyCells.Contains(cell))
+        {
+            return false;
+        }
+
+        if (!cell.Stack.IsEmpty)
+        {
+            return false;
+        }
+
         return true;
     }
 
     private void UpdateDropPreview(Vector2 screenPos)
     {
-        if (!dropIndicator) return;
-
-        bool dragging = (dragGhost != null) && (dragFromPiece != null);
-        if (!dragging)
+        if (!dropIndicatorObject)
         {
-            dropIndicator.SetActive(false);
             return;
         }
 
-        if (RaycastCell(screenPos, out HexCell cell) && cell != null && CanDropOnCell(cell))
+        bool isDragging = (dragGhostObject != null) && (dragSourcePiece != null);
+        if (!isDragging)
         {
-            dropIndicator.SetActive(true);
-            Vector3 p = cell.transform.position;
-            dropIndicator.transform.position = new Vector3(p.x, yCell + dropIndicatorY, p.z);
-            dropIndicator.transform.rotation = Quaternion.identity;
+            dropIndicatorObject.SetActive(false);
+            return;
+        }
+
+        if (RaycastCell(screenPos, out HexCell targetCell) && targetCell != null && CanDropOnCell(targetCell))
+        {
+            dropIndicatorObject.SetActive(true);
+            Vector3 cellWorldPos = targetCell.transform.position;
+            dropIndicatorObject.transform.position = new Vector3(cellWorldPos.x, yCell + dropIndicatorY, cellWorldPos.z);
+            dropIndicatorObject.transform.rotation = Quaternion.identity;
         }
         else
         {
-            dropIndicator.SetActive(false);
+            dropIndicatorObject.SetActive(false);
         }
     }
 
     private void HideDropPreview()
     {
-        if (dropIndicator) dropIndicator.SetActive(false);
+        if (dropIndicatorObject)
+        {
+            dropIndicatorObject.SetActive(false);
+        }
     }
 
     // ---------------- Fail ----------------
     private bool IsBoardFull()
     {
-        foreach (var kv in cells)
+        foreach (var kvp in cells)
         {
-            HexCell c = kv.Value;
-            if (c != null && c.Stack != null && c.Stack.IsEmpty)
+            HexCell cell = kvp.Value;
+            if (cell != null && cell.Stack != null && cell.Stack.IsEmpty)
+            {
                 return false;
+            }
         }
         return true;
     }
 
     private void CheckFailNow()
     {
-        if (hasFailed) return;
+        if (hasFailed)
+        {
+            return;
+        }
 
         if (IsBoardFull())
         {
             hasFailed = true;
             CleanupDrag();
-            if (scoreManager) scoreManager.ShowFailed();
+            if (scoreManager)
+            {
+                scoreManager.ShowFailed();
+            }
         }
     }
 
@@ -486,26 +633,37 @@ public class HexBoard : MonoBehaviour
         resolveRequested = true;
 
         if (!resolveRunning)
-            StartCoroutine(ResolveLoop());
-    }
-
-    private void EnqueueResolve(HexCell c)
-    {
-        if (!c) return;
-        if (queued.Contains(c)) return;
-
-        queued.Add(c);
-        resolveQueue.Enqueue(c);
-    }
-
-    private void EnqueueResolveAround(HexCell c)
-    {
-        EnqueueResolve(c);
-
-        foreach (var n in c.coord.Neighbours())
         {
-            if (cells.TryGetValue(n, out HexCell nb))
-                EnqueueResolve(nb);
+            StartCoroutine(ResolveLoop());
+        }
+    }
+
+    private void EnqueueResolve(HexCell cell)
+    {
+        if (!cell)
+        {
+            return;
+        }
+
+        if (queuedCells.Contains(cell))
+        {
+            return;
+        }
+
+        queuedCells.Add(cell);
+        resolveQueue.Enqueue(cell);
+    }
+
+    private void EnqueueResolveAround(HexCell centerCell)
+    {
+        EnqueueResolve(centerCell);
+
+        foreach (var neighborHex in centerCell.coord.Neighbours())
+        {
+            if (cells.TryGetValue(neighborHex, out HexCell neighborCell))
+            {
+                EnqueueResolve(neighborCell);
+            }
         }
     }
 
@@ -524,58 +682,86 @@ public class HexBoard : MonoBehaviour
             {
                 didMove = false;
                 safety++;
-                if (safety > 2000) break;
+                if (safety > 2000)
+                {
+                    break;
+                }
 
-                HexCell seed = GetNextSeedCell();
-                if (seed == null) break;
+                HexCell seedCell = GetNextSeedCell();
+                if (seedCell == null)
+                {
+                    break;
+                }
 
-                TileColor? top = seed.Stack.TopColor;
-                if (top == null) continue;
+                TileColor? topColor = seedCell.Stack.TopColor;
+                if (topColor == null)
+                {
+                    continue;
+                }
 
-                List<HexCell> group = CollectConnectedTopColorGroup(seed, top.Value);
-                if (group.Count <= 1) continue;
+                List<HexCell> group = CollectConnectedTopColorGroup(seedCell, topColor.Value);
+                if (group.Count <= 1)
+                {
+                    continue;
+                }
 
-                HexCell sink = ChooseSinkByDegree(group);
+                HexCell sinkCell = ChooseSinkByDegree(group);
 
-             
                 group.Sort((a, b) =>
                 {
-                    int q = a.coord.q.CompareTo(b.coord.q);
-                    if (q != 0) return q;
-                    return a.coord.r.CompareTo(b.coord.r);
+                    int qCompare = a.coord.col.CompareTo(b.coord.col);
+                    if (qCompare != 0)
+                    {
+                        return qCompare;
+                    }
+                    return a.coord.row.CompareTo(b.coord.row);
                 });
 
-                for (int i = 0; i < group.Count; i++)
+                for (int groupIndex = 0; groupIndex < group.Count; groupIndex++)
                 {
-                    HexCell src = group[i];
-                    if (src == null || src == sink) continue;
-                    if (src.Stack.IsEmpty) continue;
-
-                    if (busyCells.Contains(src) || busyCells.Contains(sink)) continue;
-
-                    TileColor? srcTop = src.Stack.TopColor;
-                    if (srcTop == null || srcTop.Value != top.Value) continue;
-
-                 
-                    SyncCellViews(src);
-                    SyncCellViews(sink);
-
-                    List<TileColor> pack = src.Stack.PopTopRun();
-                    if (pack.Count == 0) continue;
-
-                    if (sink.Stack.Count + pack.Count > maxStackHeight)
+                    HexCell sourceCell = group[groupIndex];
+                    if (sourceCell == null || sourceCell == sinkCell)
                     {
-                        src.Stack.PushMany(pack);
                         continue;
                     }
 
-                    sink.Stack.PushMany(pack);
+                    if (sourceCell.Stack.IsEmpty)
+                    {
+                        continue;
+                    }
 
-                  
-                    yield return StartCoroutine(AnimateMoveViews(src, sink, pack.Count));
+                    if (busyCells.Contains(sourceCell) || busyCells.Contains(sinkCell))
+                    {
+                        continue;
+                    }
 
-                    EnqueueResolveAround(sink);
-                    EnqueueResolveAround(src);
+                    TileColor? sourceTop = sourceCell.Stack.TopColor;
+                    if (sourceTop == null || sourceTop.Value != topColor.Value)
+                    {
+                        continue;
+                    }
+
+                    SyncCellViews(sourceCell);
+                    SyncCellViews(sinkCell);
+
+                    List<TileColor> movingPack = sourceCell.Stack.PopTopRun();
+                    if (movingPack.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    if (sinkCell.Stack.Count + movingPack.Count > maxStackHeight)
+                    {
+                        sourceCell.Stack.PushMany(movingPack);
+                        continue;
+                    }
+
+                    sinkCell.Stack.PushMany(movingPack);
+
+                    yield return StartCoroutine(AnimateMoveViews(sourceCell, sinkCell, movingPack.Count));
+
+                    EnqueueResolveAround(sinkCell);
+                    EnqueueResolveAround(sourceCell);
 
                     didMove = true;
                     break;
@@ -584,48 +770,55 @@ public class HexBoard : MonoBehaviour
 
             bool clearedAny = false;
 
-            foreach (var kv in cells)
+            foreach (var kvp in cells)
             {
-                HexCell cell = kv.Value;
-                if (cell == null || cell.Stack.IsEmpty) continue;
-
-                int run = cell.Stack.TopRunCount();
-                if (run < clearCount) continue;
-
-              
-                SyncCellViews(cell);
-
-                List<TileColor> removed = cell.Stack.PopTopRun();
-                if (removed.Count < clearCount)
+                HexCell cell = kvp.Value;
+                if (cell == null || cell.Stack.IsEmpty)
                 {
-                  
-                    cell.Stack.PushMany(removed);
                     continue;
                 }
 
-                int start = Mathf.Max(0, cell.views.Count - removed.Count);
-                List<GameObject> vanishList = cell.views.GetRange(start, cell.views.Count - start);
-                cell.views.RemoveRange(start, vanishList.Count);
-
-                if (scoreManager) scoreManager.AddScore(vanishList.Count);
-
-                float dur = 0.2f;
-                float step = 0.01f;
-
-                for (int i = 0; i < vanishList.Count; i++)
+                int runCount = cell.Stack.TopRunCount();
+                if (runCount < clearCount)
                 {
-                    GameObject go = vanishList[i];
-                    GameObject goCopy = go; 
-                    float delay = i * step;
-
-                    LeanTween.cancel(goCopy);
-                    LeanTween.scale(goCopy, Vector3.zero, dur)
-                        .setEase(LeanTweenType.easeInBack)
-                        .setDelay(delay)
-                        .setOnComplete(() => Destroy(goCopy));
+                    continue;
                 }
 
-                float total = vanishList.Count > 0 ? ((vanishList.Count - 1) * step + dur) : dur;
+                SyncCellViews(cell);
+
+                List<TileColor> removedRun = cell.Stack.PopTopRun();
+                if (removedRun.Count < clearCount)
+                {
+                    cell.Stack.PushMany(removedRun);
+                    continue;
+                }
+
+                int startIndex = Mathf.Max(0, cell.views.Count - removedRun.Count);
+                List<GameObject> vanishObjects = cell.views.GetRange(startIndex, cell.views.Count - startIndex);
+                cell.views.RemoveRange(startIndex, vanishObjects.Count);
+
+                if (scoreManager)
+                {
+                    scoreManager.AddScore(vanishObjects.Count);
+                }
+
+                float duration = 0.2f;
+                float step = 0.01f;
+
+                for (int i = 0; i < vanishObjects.Count; i++)
+                {
+                    GameObject tileObject = vanishObjects[i];
+                    GameObject tileObjectCopy = tileObject;
+                    float delay = i * step;
+
+                    LeanTween.cancel(tileObjectCopy);
+                    LeanTween.scale(tileObjectCopy, Vector3.zero, duration)
+                        .setEase(LeanTweenType.easeInBack)
+                        .setDelay(delay)
+                        .setOnComplete(() => Destroy(tileObjectCopy));
+                }
+
+                float total = vanishObjects.Count > 0 ? ((vanishObjects.Count - 1) * step + duration) : duration;
                 yield return new WaitForSeconds(total);
 
                 SyncCellViews(cell);
@@ -635,7 +828,9 @@ public class HexBoard : MonoBehaviour
             }
 
             if (resolveRequested || clearedAny || resolveQueue.Count > 0)
+            {
                 continue;
+            }
 
             break;
         }
@@ -646,53 +841,75 @@ public class HexBoard : MonoBehaviour
 
     private HexCell GetNextSeedCell()
     {
-        HexCell seed = null;
+        HexCell seedCell = null;
 
-        while (resolveQueue.Count > 0 && seed == null)
+        while (resolveQueue.Count > 0 && seedCell == null)
         {
-            HexCell c = resolveQueue.Dequeue();
-            queued.Remove(c);
+            HexCell queuedCell = resolveQueue.Dequeue();
+            queuedCells.Remove(queuedCell);
 
-            if (c != null && !c.Stack.IsEmpty)
-                seed = c;
+            if (queuedCell != null && !queuedCell.Stack.IsEmpty)
+            {
+                seedCell = queuedCell;
+            }
         }
 
-        if (seed != null) return seed;
-
-        foreach (var kv in cells)
+        if (seedCell != null)
         {
-            if (kv.Value != null && !kv.Value.Stack.IsEmpty)
-                return kv.Value;
+            return seedCell;
+        }
+
+        foreach (var kvp in cells)
+        {
+            HexCell cell = kvp.Value;
+            if (cell != null && !cell.Stack.IsEmpty)
+            {
+                return cell;
+            }
         }
 
         return null;
     }
 
-    private List<HexCell> CollectConnectedTopColorGroup(HexCell start, TileColor color)
+    private List<HexCell> CollectConnectedTopColorGroup(HexCell startCell, TileColor color)
     {
         List<HexCell> result = new List<HexCell>();
-        Queue<HexCell> q = new Queue<HexCell>();
+        Queue<HexCell> frontier = new Queue<HexCell>();
         HashSet<HexCell> visited = new HashSet<HexCell>();
 
-        visited.Add(start);
-        q.Enqueue(start);
+        visited.Add(startCell);
+        frontier.Enqueue(startCell);
 
-        while (q.Count > 0)
+        while (frontier.Count > 0)
         {
-            HexCell cur = q.Dequeue();
-            result.Add(cur);
+            HexCell currentCell = frontier.Dequeue();
+            result.Add(currentCell);
 
-            foreach (var n in cur.coord.Neighbours())
+            foreach (var neighborHex in currentCell.coord.Neighbours())
             {
-                if (!cells.TryGetValue(n, out HexCell nb) || nb == null) continue;
-                if (visited.Contains(nb)) continue;
-                if (nb.Stack.IsEmpty) continue;
+                if (!cells.TryGetValue(neighborHex, out HexCell neighborCell) || neighborCell == null)
+                {
+                    continue;
+                }
 
-                TileColor? nbTop = nb.Stack.TopColor;
-                if (nbTop == null || nbTop.Value != color) continue;
+                if (visited.Contains(neighborCell))
+                {
+                    continue;
+                }
 
-                visited.Add(nb);
-                q.Enqueue(nb);
+                if (neighborCell.Stack.IsEmpty)
+                {
+                    continue;
+                }
+
+                TileColor? neighborTop = neighborCell.Stack.TopColor;
+                if (neighborTop == null || neighborTop.Value != color)
+                {
+                    continue;
+                }
+
+                visited.Add(neighborCell);
+                frontier.Enqueue(neighborCell);
             }
         }
 
@@ -701,196 +918,237 @@ public class HexBoard : MonoBehaviour
 
     private HexCell ChooseSinkByDegree(List<HexCell> group)
     {
-        HashSet<HexCell> set = new HashSet<HexCell>(group);
+        HashSet<HexCell> groupSet = new HashSet<HexCell>(group);
 
-        int Degree(HexCell c)
+        int Degree(HexCell cell)
         {
-            int d = 0;
-            foreach (var n in c.coord.Neighbours())
+            int degree = 0;
+            foreach (var neighborHex in cell.coord.Neighbours())
             {
-                if (cells.TryGetValue(n, out HexCell nb) && nb != null && set.Contains(nb))
-                    d++;
+                if (cells.TryGetValue(neighborHex, out HexCell neighborCell) && neighborCell != null && groupSet.Contains(neighborCell))
+                {
+                    degree++;
+                }
             }
-            return d;
+            return degree;
         }
 
-        HexCell best = group[0];
-        int bestDeg = Degree(best);
-        int bestRun = best.Stack.TopRunCount();
-        int bestCnt = best.Stack.Count;
+        HexCell bestCell = group[0];
+        int bestDegree = Degree(bestCell);
+        int bestRun = bestCell.Stack.TopRunCount();
+        int bestCount = bestCell.Stack.Count;
 
         for (int i = 1; i < group.Count; i++)
         {
-            HexCell c = group[i];
+            HexCell candidateCell = group[i];
 
-            int deg = Degree(c);
-            int run = c.Stack.TopRunCount();
-            int cnt = c.Stack.Count;
+            int candidateDegree = Degree(candidateCell);
+            int candidateRun = candidateCell.Stack.TopRunCount();
+            int candidateCount = candidateCell.Stack.Count;
 
-            bool better = false;
-            if (deg > bestDeg) better = true;
-            else if (deg == bestDeg && run > bestRun) better = true;
-            else if (deg == bestDeg && run == bestRun && cnt > bestCnt) better = true;
-
-            if (better)
+            bool isBetter = false;
+            if (candidateDegree > bestDegree)
             {
-                best = c;
-                bestDeg = deg;
-                bestRun = run;
-                bestCnt = cnt;
+                isBetter = true;
+            }
+            else if (candidateDegree == bestDegree && candidateRun > bestRun)
+            {
+                isBetter = true;
+            }
+            else if (candidateDegree == bestDegree && candidateRun == bestRun && candidateCount > bestCount)
+            {
+                isBetter = true;
+            }
+
+            if (isBetter)
+            {
+                bestCell = candidateCell;
+                bestDegree = candidateDegree;
+                bestRun = candidateRun;
+                bestCount = candidateCount;
             }
         }
 
-        return best;
+        return bestCell;
     }
 
-    private IEnumerator AnimateMoveViews(HexCell from, HexCell to, int packCount)
+    private IEnumerator AnimateMoveViews(HexCell fromCell, HexCell toCell, int packCount)
     {
-        busyCells.Add(from);
-        busyCells.Add(to);
+        busyCells.Add(fromCell);
+        busyCells.Add(toCell);
 
-        float dur = mergeMoveDuration;
+        float duration = mergeMoveDuration;
         float stepDelay = mergeStepDelay;
 
-        int takeFrom = Mathf.Max(0, from.views.Count - packCount);
-        List<GameObject> moving = from.views.GetRange(takeFrom, from.views.Count - takeFrom);
-        from.views.RemoveRange(takeFrom, moving.Count);
+        int takeFromIndex = Mathf.Max(0, fromCell.views.Count - packCount);
+        List<GameObject> movingObjects = fromCell.views.GetRange(takeFromIndex, fromCell.views.Count - takeFromIndex);
+        fromCell.views.RemoveRange(takeFromIndex, movingObjects.Count);
 
-        int toStart = to.views.Count;
-        to.views.AddRange(moving);
+        int targetStartIndex = toCell.views.Count;
+        toCell.views.AddRange(movingObjects);
 
-        for (int i = 0; i < moving.Count; i++)
+        for (int i = 0; i < movingObjects.Count; i++)
         {
-            GameObject go = moving[i];
-            int targetIndex = toStart + i;
+            GameObject tileObject = movingObjects[i];
+            int targetIndex = targetStartIndex + i;
 
-            Vector3 basePos = to.transform.position;
+            Vector3 basePos = toCell.transform.position;
             Vector3 targetPos = new Vector3(basePos.x, yCell + targetIndex * tileHeight, basePos.z);
 
             float delay = i * stepDelay;
 
-            LeanTween.cancel(go);
-            LeanTween.move(go, targetPos, dur)
+            LeanTween.cancel(tileObject);
+            LeanTween.move(tileObject, targetPos, duration)
                 .setEase(LeanTweenType.easeInOutSine)
                 .setDelay(delay);
 
-            Vector3 flatFrom = go.transform.position; flatFrom.y = 0f;
-            Vector3 flatTo = targetPos; flatTo.y = 0f;
+            Vector3 flatFrom = tileObject.transform.position;
+            flatFrom.y = 0f;
+
+            Vector3 flatTo = targetPos;
+            flatTo.y = 0f;
 
             Vector3 dir = (flatTo - flatFrom).normalized;
-            if (dir.sqrMagnitude < 0.0001f) dir = Vector3.forward;
+            if (dir.sqrMagnitude < 0.0001f)
+            {
+                dir = Vector3.forward;
+            }
 
             Vector3 axis = Vector3.Cross(Vector3.up, dir);
-            LeanTween.rotateAround(go, axis, 180f, dur)
+            LeanTween.rotateAround(tileObject, axis, 180f, duration)
                 .setEase(LeanTweenType.easeInOutSine)
                 .setDelay(delay);
         }
 
-        float total = moving.Count > 0 ? ((moving.Count - 1) * stepDelay + dur) : dur;
+        float total = movingObjects.Count > 0 ? ((movingObjects.Count - 1) * stepDelay + duration) : duration;
         yield return new WaitForSeconds(total);
 
-        SyncCellViews(from);
-        SyncCellViews(to);
+        SyncCellViews(fromCell);
+        SyncCellViews(toCell);
 
-        busyCells.Remove(from);
-        busyCells.Remove(to);
+        busyCells.Remove(fromCell);
+        busyCells.Remove(toCell);
     }
 
     // ---------------- Views ----------------
     private void SyncAllCells()
     {
-        foreach (var kv in cells)
-            SyncCellViews(kv.Value);
+        foreach (var kvp in cells)
+        {
+            SyncCellViews(kvp.Value);
+        }
     }
 
     private void SyncCellViews(HexCell cell)
     {
-        if (cell == null) return;
-
-        List<TileColor> data = new List<TileColor>(cell.Stack.Snapshot());
-
-     
-        while (cell.views.Count > data.Count)
+        if (cell == null)
         {
-            GameObject go = cell.views[cell.views.Count - 1];
+            return;
+        }
+
+        List<TileColor> snapshot = new List<TileColor>(cell.Stack.Snapshot());
+
+        while (cell.views.Count > snapshot.Count)
+        {
+            GameObject viewObject = cell.views[cell.views.Count - 1];
             cell.views.RemoveAt(cell.views.Count - 1);
-            if (go) Destroy(go);
+            if (viewObject)
+            {
+                Destroy(viewObject);
+            }
         }
 
-     
-        while (cell.views.Count < data.Count)
+        while (cell.views.Count < snapshot.Count)
         {
-            GameObject go = Instantiate(tilePrefab, tileRoot);
-            go.name = $"Tile_{cell.coord}_{cell.views.Count}";
+            GameObject tileObject = Instantiate(tilePrefab, tileRoot);
+            tileObject.name = $"Tile_{cell.coord}_{cell.views.Count}";
 
-            Collider col = go.GetComponentInChildren<Collider>();
-            if (col) col.enabled = false;
+            Collider tileCollider = tileObject.GetComponentInChildren<Collider>();
+            if (tileCollider)
+            {
+                tileCollider.enabled = false;
+            }
 
-            cell.views.Add(go);
+            cell.views.Add(tileObject);
         }
 
-      
-        for (int i = 0; i < data.Count; i++)
+        for (int index = 0; index < snapshot.Count; index++)
         {
-            TileColor c = data[i];
-            GameObject go = cell.views[i];
+            TileColor tileColor = snapshot[index];
+            GameObject tileObject = cell.views[index];
 
             Vector3 basePos = cell.transform.position;
-            go.transform.position = new Vector3(basePos.x, yCell + i * tileHeight, basePos.z);
+            tileObject.transform.position = new Vector3(basePos.x, yCell + index * tileHeight, basePos.z);
 
-            HexTileView view = go.GetComponent<HexTileView>();
-            if (!view) view = go.AddComponent<HexTileView>();
+            HexTileView view = tileObject.GetComponent<HexTileView>();
+            if (!view)
+            {
+                view = tileObject.AddComponent<HexTileView>();
+            }
 
-            Material mat = ((int)c >= 0 && (int)c < colorMaterials.Length) ? colorMaterials[(int)c] : null;
-            view.Init(c, i, mat);
+            Material mat = ((int)tileColor >= 0 && (int)tileColor < colorMaterials.Length) ? colorMaterials[(int)tileColor] : null;
+            view.Init(tileColor, index, mat);
         }
     }
 
     // ---------------- Ghost Build ----------------
     private void BuildGhostFromTiles(List<TileColor> tiles, Transform parent)
     {
-      
-        for (int i = parent.childCount - 1; i >= 0; i--)
-            Destroy(parent.GetChild(i).gameObject);
+        for (int childIndex = parent.childCount - 1; childIndex >= 0; childIndex--)
+        {
+            Destroy(parent.GetChild(childIndex).gameObject);
+        }
 
         for (int i = 0; i < tiles.Count; i++)
         {
-            TileColor c = tiles[i];
+            TileColor tileColor = tiles[i];
 
-            GameObject go = Instantiate(tilePrefab, parent);
-            go.transform.localPosition = new Vector3(0, i * tileHeight, 0);
+            GameObject tileObject = Instantiate(tilePrefab, parent);
+            tileObject.transform.localPosition = new Vector3(0, i * tileHeight, 0);
 
-            HexTileView view = go.GetComponent<HexTileView>();
-            if (!view) view = go.AddComponent<HexTileView>();
+            HexTileView view = tileObject.GetComponent<HexTileView>();
+            if (!view)
+            {
+                view = tileObject.AddComponent<HexTileView>();
+            }
 
-            Material mat = colorMaterials[(int)c];
-            view.Init(c, i, mat);
+            Material mat = colorMaterials[(int)tileColor];
+            view.Init(tileColor, i, mat);
 
-            Collider col = go.GetComponentInChildren<Collider>();
-            if (col) col.enabled = false;
+            Collider tileCollider = tileObject.GetComponentInChildren<Collider>();
+            if (tileCollider)
+            {
+                tileCollider.enabled = false;
+            }
         }
     }
 
     // ---------------- Raycast ----------------
-    private bool RaycastCell(Vector2 screenPos, out HexCell cell)
+    private bool RaycastCell(Vector2 screenPos, out HexCell hitCell)
     {
-        cell = null;
+        hitCell = null;
 
         Ray ray = cam.ScreenPointToRay(screenPos);
-        if (!Physics.Raycast(ray, out RaycastHit hit, 200f)) return false;
+        if (!Physics.Raycast(ray, out RaycastHit hitInfo, 200f))
+        {
+            return false;
+        }
 
-        cell = hit.collider.GetComponentInParent<HexCell>();
-        return cell != null;
+        hitCell = hitInfo.collider.GetComponentInParent<HexCell>();
+        return hitCell != null;
     }
 
-    private bool RaycastHandPiece(Vector2 screenPos, out HandPiece piece)
+    private bool RaycastHandPiece(Vector2 screenPos, out HandPiece hitPiece)
     {
-        piece = null;
+        hitPiece = null;
 
         Ray ray = cam.ScreenPointToRay(screenPos);
-        if (!Physics.Raycast(ray, out RaycastHit hit, 200f)) return false;
+        if (!Physics.Raycast(ray, out RaycastHit hitInfo, 200f))
+        {
+            return false;
+        }
 
-        piece = hit.collider.GetComponentInParent<HandPiece>();
-        return piece != null;
+        hitPiece = hitInfo.collider.GetComponentInParent<HandPiece>();
+        return hitPiece != null;
     }
 }

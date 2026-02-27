@@ -8,18 +8,26 @@ public class BoardLayoutSO : ScriptableObject
 
     public bool Contains(int q, int r)
     {
-        if (cells == null) return false;
+        if (cells == null)
+        {
+            return false;
+        }
 
         for (int i = 0; i < cells.Count; i++)
         {
             var row = cells[i];
-            if (row == null || row.items == null) continue;
+            if (row == null || row.items == null)
+            {
+                continue;
+            }
 
             for (int j = 0; j < row.items.Count; j++)
             {
                 Hex h = row.items[j].ToHex();
-                if (h.q == q && h.r == r)
+                if (h.col == q && h.row == r)
+                {
                     return true;
+                }
             }
         }
 
@@ -28,15 +36,23 @@ public class BoardLayoutSO : ScriptableObject
 
     public IEnumerable<Hex> EnumerateHexes()
     {
-        if (cells == null) yield break;
+        if (cells == null)
+        {
+            yield break;
+        }
 
         for (int i = 0; i < cells.Count; i++)
         {
             var row = cells[i];
-            if (row == null || row.items == null) continue;
+            if (row == null || row.items == null)
+            {
+                continue;
+            }
 
             for (int j = 0; j < row.items.Count; j++)
+            {
                 yield return row.items[j].ToHex();
+            }
         }
     }
 }
@@ -61,7 +77,6 @@ public struct HexCoord
 
     public Hex ToHex()
     {
-      
         return new Hex(Mathf.RoundToInt(q), Mathf.RoundToInt(r));
     }
 }

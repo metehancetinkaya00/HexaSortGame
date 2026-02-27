@@ -35,16 +35,16 @@ public static class HexVectorExtensions
 [Serializable]
 public struct Hex : IEquatable<Hex>
 {
-    public static float RADIUS = 0.5f;
+    public static float radius = 0.5f;
 
     
-    public static Vector2 Q_BASIS = new Vector2(2f, 0f) * RADIUS;
-    public static Vector2 R_BASIS = new Vector2(1f, Mathf.Sqrt(3f)) * RADIUS;
+    public static Vector2 qbasis = new Vector2(2f, 0f) * radius;
+    public static Vector2 rbasis = new Vector2(1f, Mathf.Sqrt(3f)) * radius;
 
-    public static Vector2 Q_INV = new Vector2(0.5f, -Mathf.Sqrt(3f) / 6f);
-    public static Vector2 R_INV = new Vector2(0f, Mathf.Sqrt(3f) / 3f);
+    public static Vector2 qaxisinverse = new Vector2(0.5f, -Mathf.Sqrt(3f) / 6f);
+    public static Vector2 raxisinverse = new Vector2(0f, Mathf.Sqrt(3f) / 3f);
 
-    public static Hex[] AXIAL_DIRECTIONS = new Hex[]
+    public static Hex[] axialdirection = new Hex[]
     {
         new Hex(1, 0),
         new Hex(0, 1),
@@ -56,22 +56,22 @@ public struct Hex : IEquatable<Hex>
 
     public static Hex zero = new Hex(0, 0);
 
-    public int q;
-    public int r;
+    public int col;
+    public int row;
 
-    public Hex(float q, float r) : this(Mathf.RoundToInt(q), Mathf.RoundToInt(r)) { }
+    public Hex(float col, float row) : this(Mathf.RoundToInt(col), Mathf.RoundToInt(row)) { }
 
-    public Hex(int q, int r)
+    public Hex(int col, int row)
     {
-        this.q = q;
-        this.r = r;
+        this.col = col;
+        this.row = row;
     }
 
     public static Hex FromPlanar(Vector2 planar)
     {
-        float q = Vector2.Dot(planar, Q_INV) / RADIUS;
-        float r = Vector2.Dot(planar, R_INV) / RADIUS;
-        return new Hex(q, r);
+        float col = Vector2.Dot(planar, qaxisinverse) / radius;
+        float row = Vector2.Dot(planar, raxisinverse) / radius;
+        return new Hex(col, row);
     }
 
     public static Hex FromWorld(Vector3 world)
@@ -81,7 +81,7 @@ public struct Hex : IEquatable<Hex>
 
     public Vector2 ToPlanar()
     {
-        return Q_BASIS * q + R_BASIS * r;
+        return qbasis * col + rbasis * row;
     }
 
     public Vector3 ToWorld(float y)
@@ -96,26 +96,26 @@ public struct Hex : IEquatable<Hex>
 
     public IEnumerable<Hex> Neighbours()
     {
-        for (int i = 0; i < AXIAL_DIRECTIONS.Length; i++)
-            yield return this + AXIAL_DIRECTIONS[i];
+        for (int i = 0; i < axialdirection.Length; i++)
+            yield return this + axialdirection[i];
     }
 
     public Hex GetNeighbour(int dir)
     {
-        int idx = dir % AXIAL_DIRECTIONS.Length;
-        if (idx < 0) idx += AXIAL_DIRECTIONS.Length;
-        return this + AXIAL_DIRECTIONS[idx];
+        int idx = dir % axialdirection.Length;
+        if (idx < 0) idx += axialdirection.Length;
+        return this + axialdirection[idx];
     }
 
-    public int DistanceTo(Hex to)
+    public int DistanceTo(Hex other)
     {
-        return (Mathf.Abs(q - to.q)
-              + Mathf.Abs(q + r - to.q - to.r)
-              + Mathf.Abs(r - to.r)) / 2;
+        return (Mathf.Abs(col - other.col)
+              + Mathf.Abs(col + row - other.col - other.row)
+              + Mathf.Abs(row - other.row)) / 2;
     }
 
-    public static Hex operator +(Hex a, Hex b) => new Hex(a.q + b.q, a.r + b.r);
-    public static Hex operator -(Hex a, Hex b) => new Hex(a.q - b.q, a.r - b.r);
+    public static Hex operator +(Hex a, Hex b) => new Hex(a.col + b.col, a.row + b.row);
+    public static Hex operator -(Hex a, Hex b) => new Hex(a.col - b.col, a.row - b.row);
 
  
     public static IEnumerable<Hex> Ring(Hex center, int radius)
@@ -124,9 +124,9 @@ public struct Hex : IEquatable<Hex>
 
         Hex current = center + new Hex(0, -radius);
 
-        for (int d = 0; d < AXIAL_DIRECTIONS.Length; d++)
+        for (int directionIndex = 0; directionIndex < axialdirection.Length; directionIndex++)
         {
-            Hex dir = AXIAL_DIRECTIONS[d];
+            Hex dir = axialdirection[directionIndex];
             for (int i = 0; i < radius; i++)
             {
                 yield return current;
@@ -144,9 +144,9 @@ public struct Hex : IEquatable<Hex>
             minRadius = 1;
         }
 
-        for (int r = minRadius; r <= maxRadius; r++)
-            foreach (Hex h in Ring(center, r))
-                yield return h;
+        for (int radius = minRadius; radius <= maxRadius; radius++)
+            foreach (Hex hex in Ring(center, radius))
+                yield return hex;
     }
 
   
@@ -157,10 +157,10 @@ public struct Hex : IEquatable<Hex>
         HashSet<Hex> visited = new HashSet<Hex>();
         Queue<Hex> frontier = new Queue<Hex>();
 
-        foreach (var s in startFrom)
+        foreach (var startCell in startFrom)
         {
-            if (visited.Add(s))
-                frontier.Enqueue(s);
+            if (visited.Add(startCell))
+                frontier.Enqueue(startCell);
         }
 
         while (frontier.Count > 0)
@@ -176,9 +176,9 @@ public struct Hex : IEquatable<Hex>
         }
     }
 
-    public bool Equals(Hex other) => q == other.q && r == other.r;
+    public bool Equals(Hex other) => col == other.col && row == other.row;
     public override bool Equals(object obj) => obj is Hex other && Equals(other);
-    public override int GetHashCode() => HashCode.Combine(q, r);
+    public override int GetHashCode() => HashCode.Combine(col, row);
 
-    public override string ToString() => $"({q};{r})";
+    public override string ToString() => $"({col};{row})";
 }

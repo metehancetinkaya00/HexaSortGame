@@ -10,27 +10,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68c3b0c1436cf6a4caff6de013456771, type: 3}
-  m_Name: BoardLayout
+  m_Name: BoardLayout 1
   m_EditorClassIdentifier: Assembly-CSharp::BoardLayoutSO
-  cells:
-  - items:
-    - q: -2
-      r: 4
-    - q: -1
-      r: 5
-    - q: 1
-      r: 3
-    - q: 1
-      r: 4
-    - q: 2
-      r: 3
-    - q: 2
-      r: 5
-    - q: -2
-      r: 5
-    - q: -1
-      r: 6
-    - q: -2
-      r: 6
-    - q: -2
-      r: 3
+  cells: []

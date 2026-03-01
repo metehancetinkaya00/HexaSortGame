@@ -99,7 +99,7 @@ public class HexBoard : MonoBehaviour
             EnsureHandSlots(setAnchors[anchorIndex], HandSlotCount);
         }
 
-        BuildBoard();
+    
         SyncAllCells();
 
         GenerateNextPack();
@@ -109,7 +109,7 @@ public class HexBoard : MonoBehaviour
     {
         if (Camera.main == null)
         {
-            Debug.LogError("Main Camera missing / not tagged MainCamera.");
+            Debug.LogError("Main Camera missing");
             return false;
         }
 
@@ -191,40 +191,7 @@ public class HexBoard : MonoBehaviour
         }
     }
 
-    // ---------------- Board ----------------
-    private void BuildBoard()
-    {
-        cells.Clear();
-
-        List<Hex> coords = new List<Hex>();
-
-        if (boardLayout != null && boardLayout.cells != null && boardLayout.cells.Count > 0)
-        {
-            foreach (var hex in boardLayout.EnumerateHexes())
-            {
-                coords.Add(hex);
-            }
-        }
-        else
-        {
-            foreach (var hex in Hex.Spiral(Hex.zero, 0, boardRadius))
-            {
-                coords.Add(hex);
-            }
-        }
-
-        for (int coordIndex = 0; coordIndex < coords.Count; coordIndex++)
-        {
-            Hex hex = coords[coordIndex];
-
-            HexCell cellInstance = Instantiate(cellPrefab, cellsRoot);
-            cellInstance.Init(hex);
-            cellInstance.transform.position = hex.ToWorld(yCell);
-            cellInstance.Stack.SetTiles(System.Array.Empty<TileColor>());
-
-            cells[hex] = cellInstance;
-        }
-    }
+  
 
     // ---------------- Pack ----------------
     private void GenerateNextPack()

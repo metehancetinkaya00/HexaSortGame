@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -25,7 +25,9 @@ public class BoardLayoutPainter : MonoBehaviour
 #if UNITY_EDITOR
     void OnEnable()
     {
-        if (cellsParent == null) cellsParent = transform;
+        if (cellsParent == null)
+            cellsParent = transform;
+
         SceneView.duringSceneGui += OnSceneGUI;
     }
 
@@ -42,10 +44,8 @@ public class BoardLayoutPainter : MonoBehaviour
         Event currentEvent = Event.current;
         if (currentEvent == null) return;
 
-        // IMPORTANT: stop Unity selection from eating clicks
         HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Passive));
 
-        // Use SHIFT (more reliable than CTRL)
         if (!currentEvent.shift) return;
 
         Ray ray = HandleUtility.GUIPointToWorldRay(currentEvent.mousePosition);
@@ -56,9 +56,7 @@ public class BoardLayoutPainter : MonoBehaviour
 
         Vector3 hitPoint = ray.GetPoint(hitDistance);
 
-        Hex hexCoord;
-        if (snapToHexGrid) hexCoord = hitPoint.ToHex();
-        else hexCoord = hitPoint.ToHex();
+        Hex hexCoord = snapToHexGrid ? hitPoint.ToHex() : hitPoint.ToHex();
 
         Handles.Label(hexCoord.ToWorld(yLevel) + Vector3.up * 0.1f, hexCoord.ToString());
 
@@ -76,12 +74,15 @@ public class BoardLayoutPainter : MonoBehaviour
 
     public void AddCell(Hex hexCoord)
     {
-        if (spawnedCells.ContainsKey(hexCoord)) return;
+        if (cellsParent == null)
+            cellsParent = transform;
 
-        if (cellsParent == null) cellsParent = transform;
+        if (spawnedCells.ContainsKey(hexCoord))
+            return;
 
         HexCell newCell = (HexCell)PrefabUtility.InstantiatePrefab(hexCellPrefab, cellsParent);
         newCell.Init(hexCoord);
+        newCell.Stack.SetTiles(System.Array.Empty<TileColor>());
         newCell.transform.position = hexCoord.ToWorld(yLevel);
 
         spawnedCells.Add(hexCoord, newCell);
@@ -90,31 +91,46 @@ public class BoardLayoutPainter : MonoBehaviour
 
     public void RemoveCell(Hex hexCoord)
     {
+        if (cellsParent == null)
+            cellsParent = transform;
+
         HexCell existingCell;
-        if (!spawnedCells.TryGetValue(hexCoord, out existingCell)) return;
-
-        spawnedCells.Remove(hexCoord);
-
-        if (existingCell != null)
-            DestroyImmediate(existingCell.gameObject);
+        if (spawnedCells.TryGetValue(hexCoord, out existingCell))
+        {
+            spawnedCells.Remove(hexCoord);
+            if (existingCell != null)
+                DestroyImmediate(existingCell.gameObject);
+        }
+        else
+        {
+            HexCell[] sceneCells = cellsParent.GetComponentsInChildren<HexCell>(true);
+            for (int i = 0; i < sceneCells.Length; i++)
+            {
+                if (sceneCells[i] != null && sceneCells[i].coord.Equals(hexCoord))
+                {
+                    DestroyImmediate(sceneCells[i].gameObject);
+                    break;
+                }
+            }
+        }
 
         EditorUtility.SetDirty(gameObject);
     }
 
     public void ClearSceneCells()
     {
-        List<HexCell> allCells = new List<HexCell>();
+        if (cellsParent == null)
+            cellsParent = transform;
 
-        foreach (KeyValuePair<Hex, HexCell> pair in spawnedCells)
+        // ✅ Clear should NOT rely on spawnedCells. Delete actual scene objects.
+        HexCell[] sceneCells = cellsParent.GetComponentsInChildren<HexCell>(true);
+        for (int i = 0; i < sceneCells.Length; i++)
         {
-            if (pair.Value != null) allCells.Add(pair.Value);
+            if (sceneCells[i] != null)
+                DestroyImmediate(sceneCells[i].gameObject);
         }
 
         spawnedCells.Clear();
-
-        for (int i = 0; i < allCells.Count; i++)
-            DestroyImmediate(allCells[i].gameObject);
-
         EditorUtility.SetDirty(gameObject);
     }
 
@@ -125,28 +141,79 @@ public class BoardLayoutPainter : MonoBehaviour
         ClearSceneCells();
 
         foreach (Hex hexCoord in layoutAsset.EnumerateHexes())
+        {
             AddCell(hexCoord);
+        }
+
+        RebuildDictionaryFromScene();
+        RefreshHexBoardIfExists();
     }
 
     public void SaveToLayout()
     {
         if (layoutAsset == null) return;
 
+        if (cellsParent == null)
+            cellsParent = transform;
+
+        // ✅ Save should read scene objects
+        HexCell[] sceneCells = cellsParent.GetComponentsInChildren<HexCell>(true);
+
         layoutAsset.cells = new List<HexCoordList>();
 
         HexCoordList oneList = new HexCoordList();
         oneList.items = new List<HexCoord>();
 
-        foreach (KeyValuePair<Hex, HexCell> pair in spawnedCells)
+        for (int i = 0; i < sceneCells.Length; i++)
         {
-            Hex hexCoord = pair.Key;
-            oneList.items.Add(new HexCoord(hexCoord.col, hexCoord.row));
+            HexCell cell = sceneCells[i];
+            if (cell == null) continue;
+
+            oneList.items.Add(new HexCoord(cell.coord.col, cell.coord.row));
         }
 
         layoutAsset.cells.Add(oneList);
 
         EditorUtility.SetDirty(layoutAsset);
         AssetDatabase.SaveAssets();
+    }
+
+    void RebuildDictionaryFromScene()
+    {
+        if (cellsParent == null)
+            cellsParent = transform;
+
+        spawnedCells.Clear();
+
+        HexCell[] sceneCells = cellsParent.GetComponentsInChildren<HexCell>(true);
+        for (int i = 0; i < sceneCells.Length; i++)
+        {
+            HexCell cell = sceneCells[i];
+            if (cell == null) continue;
+
+            // if someone dragged it manually
+            if (cell.Stack == null)
+            {
+                cell.Init(cell.coord);
+                cell.Stack.SetTiles(System.Array.Empty<TileColor>());
+            }
+
+            spawnedCells[cell.coord] = cell;
+        }
+    }
+
+    void RefreshHexBoardIfExists()
+    {
+        HexBoard board = GameObject.FindObjectOfType<HexBoard>(true);
+        if (board != null)
+        {
+            // Only if you implemented this method on HexBoard:
+            // board.RefreshBoardFromScene();
+            // If not implemented, it does nothing.
+            var method = board.GetType().GetMethod("RefreshBoardFromScene");
+            if (method != null)
+                method.Invoke(board, null);
+        }
     }
 #endif
 }

@@ -9,7 +9,7 @@ public class ScoreManager : MonoBehaviour
     [Header("UI")]
     public TMP_Text scoreText;
     public Slider progressSlider;
-    public bool sliderUseNormalized = true; 
+    public bool sliderUseNormalized = true;
 
     [Header("Slider Smooth")]
     public bool smoothSlider = true;
@@ -76,10 +76,18 @@ public class ScoreManager : MonoBehaviour
     private void PreparePanel(GameObject panel, float initialScale, out CanvasGroup cg)
     {
         cg = null;
-        if (!panel) return;
+
+        if (!panel)
+        {
+            return;
+        }
 
         cg = panel.GetComponent<CanvasGroup>();
-        if (!cg) cg = panel.AddComponent<CanvasGroup>();
+
+        if (!cg)
+        {
+            cg = panel.AddComponent<CanvasGroup>();
+        }
 
         cg.alpha = 0f;
         panel.transform.localScale = Vector3.one * initialScale;
@@ -88,7 +96,10 @@ public class ScoreManager : MonoBehaviour
 
     private void SetupSlider()
     {
-        if (!progressSlider) return;
+        if (!progressSlider)
+        {
+            return;
+        }
 
         if (sliderUseNormalized)
         {
@@ -104,7 +115,10 @@ public class ScoreManager : MonoBehaviour
 
     private void UpdateLevelText()
     {
-        if (!levelText) return;
+        if (!levelText)
+        {
+            return;
+        }
 
         int buildIndex = SceneManager.GetActiveScene().buildIndex;
         int levelNumber = buildIndex + levelNumberOffset;
@@ -113,8 +127,15 @@ public class ScoreManager : MonoBehaviour
 
     public void AddScore(int amount)
     {
-        if (HasWon || HasFailed) return;
-        if (amount <= 0) return;
+        if (HasWon || HasFailed)
+        {
+            return;
+        }
+
+        if (amount <= 0)
+        {
+            return;
+        }
 
         Score += amount;
         RefreshUI(immediateSlider: !smoothSlider);
@@ -124,45 +145,81 @@ public class ScoreManager : MonoBehaviour
             HasWon = true;
             ForceSliderFull();
 
-            if (failRoutine != null) StopCoroutine(failRoutine);
+            if (failRoutine != null)
+            {
+                StopCoroutine(failRoutine);
+            }
+
             failRoutine = null;
 
-            if (winRoutine != null) StopCoroutine(winRoutine);
+            if (winRoutine != null)
+            {
+                StopCoroutine(winRoutine);
+            }
+
             winRoutine = StartCoroutine(WinSequence());
         }
     }
 
     public void ShowFailed()
     {
-        if (HasWon || HasFailed) return;
+        if (HasWon || HasFailed)
+        {
+            return;
+        }
 
         HasFailed = true;
 
-        if (winRoutine != null) StopCoroutine(winRoutine);
+        if (winRoutine != null)
+        {
+            StopCoroutine(winRoutine);
+        }
+
         winRoutine = null;
 
-        if (winObject) winObject.SetActive(false);
+        if (winObject)
+        {
+            winObject.SetActive(false);
+        }
 
-        if (!failedObject) return;
+        if (!failedObject)
+        {
+            return;
+        }
 
-        if (failRoutine != null) StopCoroutine(failRoutine);
+        if (failRoutine != null)
+        {
+            StopCoroutine(failRoutine);
+        }
+
         failRoutine = StartCoroutine(FailSequence());
     }
 
     private void ForceSliderFull()
     {
-        if (!progressSlider) return;
+        if (!progressSlider)
+        {
+            return;
+        }
 
         if (sliderUseNormalized)
         {
             sliderTargetValue = 1f;
-            if (!smoothSlider) progressSlider.value = 1f;
+
+            if (!smoothSlider)
+            {
+                progressSlider.value = 1f;
+            }
         }
         else
         {
             progressSlider.maxValue = targetScore;
             sliderTargetValue = targetScore;
-            if (!smoothSlider) progressSlider.value = targetScore;
+
+            if (!smoothSlider)
+            {
+                progressSlider.value = targetScore;
+            }
         }
     }
 
@@ -175,22 +232,38 @@ public class ScoreManager : MonoBehaviour
         }
 
         if (particlesDelay > 0f)
+        {
             yield return new WaitForSecondsRealtime(particlesDelay);
+        }
 
-        if (!winObject) yield break;
+        if (!winObject)
+        {
+            yield break;
+        }
 
         winObject.SetActive(true);
-        if (!winCanvasGroup) winCanvasGroup = winObject.GetComponent<CanvasGroup>();
+
+        if (!winCanvasGroup)
+        {
+            winCanvasGroup = winObject.GetComponent<CanvasGroup>();
+        }
 
         yield return AnimatePanel(winObject, winCanvasGroup, startScale, fadeDuration, scaleDuration);
     }
 
     private IEnumerator FailSequence()
     {
-        if (!failedObject) yield break;
+        if (!failedObject)
+        {
+            yield break;
+        }
 
         failedObject.SetActive(true);
-        if (!failCanvasGroup) failCanvasGroup = failedObject.GetComponent<CanvasGroup>();
+
+        if (!failCanvasGroup)
+        {
+            failCanvasGroup = failedObject.GetComponent<CanvasGroup>();
+        }
 
         yield return AnimatePanel(failedObject, failCanvasGroup, failStartScale, failFadeDuration, failScaleDuration);
     }
@@ -240,13 +313,23 @@ public class ScoreManager : MonoBehaviour
         HasWon = false;
         HasFailed = false;
 
-        if (winRoutine != null) StopCoroutine(winRoutine);
-        if (failRoutine != null) StopCoroutine(failRoutine);
+        if (winRoutine != null)
+        {
+            StopCoroutine(winRoutine);
+        }
+
+        if (failRoutine != null)
+        {
+            StopCoroutine(failRoutine);
+        }
+
         winRoutine = null;
         failRoutine = null;
 
         if (winParticles)
+        {
             winParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
 
         PreparePanel(winObject, startScale, out winCanvasGroup);
         PreparePanel(failedObject, failStartScale, out failCanvasGroup);
@@ -258,22 +341,35 @@ public class ScoreManager : MonoBehaviour
     private void RefreshUI(bool immediateSlider)
     {
         if (scoreText)
+        {
             scoreText.text = $"Score: {Score}/{targetScore}";
+        }
 
-        if (!progressSlider) return;
+        if (!progressSlider)
+        {
+            return;
+        }
 
         if (sliderUseNormalized)
         {
             float t = (targetScore <= 0) ? 1f : Mathf.Clamp01((float)Score / targetScore);
             sliderTargetValue = t;
-            if (immediateSlider) progressSlider.value = t;
+
+            if (immediateSlider)
+            {
+                progressSlider.value = t;
+            }
         }
         else
         {
             progressSlider.maxValue = targetScore;
             float v = Mathf.Clamp(Score, 0, targetScore);
             sliderTargetValue = v;
-            if (immediateSlider) progressSlider.value = v;
+
+            if (immediateSlider)
+            {
+                progressSlider.value = v;
+            }
         }
     }
 }

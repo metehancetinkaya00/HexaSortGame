@@ -97,21 +97,24 @@ public struct Hex : IEquatable<Hex>
     public IEnumerable<Hex> Neighbours()
     {
         for (int i = 0; i < directions.Length; i++)
+        {
             yield return this + directions[i];
+        }
     }
 
     public Hex GetNeighbour(int dir)
     {
         int index = dir % directions.Length;
-        if (index < 0) index += directions.Length;
+        if (index < 0)
+        {
+            index += directions.Length;
+        }
         return this + directions[index];
     }
 
     public int DistanceTo(Hex other)
     {
-        return (Mathf.Abs(col - other.col)
-              + Mathf.Abs(col + row - other.col - other.row)
-              + Mathf.Abs(row - other.row)) / 2;
+        return (Mathf.Abs(col - other.col)+ Mathf.Abs(col + row - other.col - other.row)  + Mathf.Abs(row - other.row)) / 2;
     }
 
     public static Hex operator +(Hex a, Hex b)
@@ -127,7 +130,9 @@ public struct Hex : IEquatable<Hex>
     public static IEnumerable<Hex> Ring(Hex center, int radius)
     {
         if (radius <= 0)
+        {
             yield break;
+        }
 
         Hex current = center + new Hex(0, -radius);
 
@@ -153,14 +158,18 @@ public struct Hex : IEquatable<Hex>
         for (int radius = minRadius; radius <= maxRadius; radius++)
         {
             foreach (Hex hex in Ring(center, radius))
+            {
                 yield return hex;
+            }
         }
     }
 
     public static IEnumerable<Hex> FloodFill(IEnumerable<Hex> startFrom)
     {
         if (startFrom == null)
+        {
             yield break;
+        }
 
         HashSet<Hex> visited = new HashSet<Hex>();
         Queue<Hex> frontier = new Queue<Hex>();
@@ -168,7 +177,9 @@ public struct Hex : IEquatable<Hex>
         foreach (Hex startCell in startFrom)
         {
             if (visited.Add(startCell))
+            {
                 frontier.Enqueue(startCell);
+            }
         }
 
         while (frontier.Count > 0)
@@ -179,7 +190,9 @@ public struct Hex : IEquatable<Hex>
             foreach (Hex next in current.Neighbours())
             {
                 if (visited.Add(next))
+                {
                     frontier.Enqueue(next);
+                }
             }
         }
     }
@@ -191,7 +204,11 @@ public struct Hex : IEquatable<Hex>
 
     public override bool Equals(object obj)
     {
-        if (!(obj is Hex)) return false;
+        if (!(obj is Hex))
+        {
+            return false;
+        }
+
         Hex other = (Hex)obj;
         return Equals(other);
     }

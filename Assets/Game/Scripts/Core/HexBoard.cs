@@ -10,8 +10,8 @@ public class HexBoard : MonoBehaviour
     public int randomSeed = 0;
     public bool chooseRandomAnchorEachPack = true;
 
-    [Header("Board Layout (Optional)")]
-    public BoardLayoutSO boardLayout;
+    [Header("Hex Level Layout (Optional)")]
+    public HexLevelLayout hexLevelLayout;
 
     [Header("Set Anchors")]
     public Transform[] setAnchors;
@@ -52,32 +52,40 @@ public class HexBoard : MonoBehaviour
 
     private Dictionary<Hex, HexCell> cells = new Dictionary<Hex, HexCell>();
     private Camera cam;
+
     private System.Random rng;
     private Transform activeAnchor;
     private int piecesLeftInPack;
 
-    // drag
     private HandPiece dragSourcePiece;
     private GameObject dragGhostObject;
     private GameObject hiddenSourceObject;
 
-    // input
     private Vector2 lastPointerScreenPos;
     private bool hasPointerPos;
 
-    // resolve
     private bool resolveRunning;
     private bool resolveRequested;
     private Queue<HexCell> resolveQueue = new Queue<HexCell>();
     private HashSet<HexCell> queuedCells = new HashSet<HexCell>();
     private HashSet<HexCell> busyCells = new HashSet<HexCell>();
 
-    // preview
     private GameObject dropIndicatorObject;
 
     private bool hasFailed;
 
-    private int HandSlotCount => (randomPack != null) ? Mathf.Max(1, randomPack.piecesPerPack) : 3;
+    private int HandSlotCount
+    {
+        get
+        {
+            if (randomPack != null)
+            {
+                return Mathf.Max(1, randomPack.piecesPerPack);
+            }
+
+            return 3;
+        }
+    }
 
     void Awake()
     {
@@ -98,9 +106,9 @@ public class HexBoard : MonoBehaviour
             EnsureHandSlots(setAnchors[anchorIndex], HandSlotCount);
         }
 
-        RefreshBoardFromScene();
-
+        BuildBoardFromLayout();
         SyncAllCells();
+
         GenerateNextPack();
     }
 
@@ -190,44 +198,39 @@ public class HexBoard : MonoBehaviour
         }
     }
 
-    // ---------------- Board ----------------
-    public void RefreshBoardFromScene()
+    private void BuildBoardFromLayout()
     {
         cells.Clear();
 
-        HexCell[] sceneCells;
+        List<Hex> coords = new List<Hex>();
 
-        if (cellsRoot != null)
-            sceneCells = cellsRoot.GetComponentsInChildren<HexCell>(true);
-        else
-            sceneCells = FindObjectsOfType<HexCell>(true);
-
-        for (int i = 0; i < sceneCells.Length; i++)
+        if (hexLevelLayout != null)
         {
-            HexCell cell = sceneCells[i];
-            if (cell == null) continue;
-
-            // coord boş/yanlışsa pozisyondan hesapla
-            if (cell.coord.col == 0 && cell.coord.row == 0)
+            foreach (Hex hexCoord in hexLevelLayout.EnumerateHexes())
             {
-                Hex computed = cell.transform.position.ToHex();
-                cell.coord = computed;
-                cell.name = "Cell " + computed.ToString();
+                coords.Add(hexCoord);
             }
-
-            // stack null ise init et
-            if (cell.Stack == null)
+        }
+        else
+        {
+            foreach (Hex hexCoord in Hex.Spiral(Hex.zero, 0, boardRadius))
             {
-                cell.Init(cell.coord);
-                cell.Stack.SetTiles(System.Array.Empty<TileColor>());
+                coords.Add(hexCoord);
             }
-
-            cells[cell.coord] = cell;
         }
 
-        Debug.Log("RefreshBoardFromScene: " + cells.Count + " cells cached.");
+        for (int coordIndex = 0; coordIndex < coords.Count; coordIndex++)
+        {
+            Hex hexCoord = coords[coordIndex];
+
+            HexCell cellInstance = Instantiate(cellPrefab, cellsRoot);
+            cellInstance.Init(hexCoord);
+            cellInstance.transform.position = hexCoord.ToWorld(yCell);
+            cellInstance.Stack.SetTiles(System.Array.Empty<TileColor>());
+
+            cells[hexCoord] = cellInstance;
+        }
     }
-    // ---------------- Pack ----------------
 
     private void GenerateNextPack()
     {
@@ -316,8 +319,6 @@ public class HexBoard : MonoBehaviour
         BuildGhostFromTiles(piece.tiles, pieceObject.transform);
     }
 
-    // ---------------- Update / Input ----------------
-
     void Update()
     {
         if (hasFailed)
@@ -400,8 +401,6 @@ public class HexBoard : MonoBehaviour
         return Mouse.current != null && Mouse.current.leftButton.isPressed;
     }
 
-    // ---------------- Drag ----------------
-
     private void TryBeginDrag(Vector2 screenPos)
     {
         if (dragGhostObject != null)
@@ -409,13 +408,18 @@ public class HexBoard : MonoBehaviour
             return;
         }
 
-        if (RaycastHandPiece(screenPos, out HandPiece hitPiece) && hitPiece != null && hitPiece.tiles != null && hitPiece.tiles.Count > 0)
+        if (RaycastHandPiece(screenPos, out HandPiece hitPiece) &&
+            hitPiece != null &&
+            hitPiece.tiles != null &&
+            hitPiece.tiles.Count > 0)
         {
             dragSourcePiece = hitPiece;
+
             hiddenSourceObject = hitPiece.gameObject;
             SetHandPieceVisible(hiddenSourceObject, false);
 
             dragGhostObject = new GameObject("DragGhost_Piece");
+
             Vector3 sourceWorldPos = hitPiece.transform.position;
             dragGhostObject.transform.position = new Vector3(sourceWorldPos.x, dragGhostY, sourceWorldPos.z);
 
@@ -479,12 +483,12 @@ public class HexBoard : MonoBehaviour
             return;
         }
 
-        // drop
         targetCell.Stack.PushMany(tiles);
         SyncCellViews(targetCell);
 
         Destroy(dragSourcePiece.gameObject);
         dragSourcePiece = null;
+
         CleanupDrag();
 
         piecesLeftInPack--;
@@ -495,6 +499,7 @@ public class HexBoard : MonoBehaviour
 
         EnqueueResolveAround(targetCell);
         RequestResolve();
+
         CheckFailNow();
     }
 
@@ -504,7 +509,6 @@ public class HexBoard : MonoBehaviour
         {
             Destroy(dragGhostObject);
         }
-
         dragGhostObject = null;
 
         if (hiddenSourceObject != null)
@@ -536,8 +540,6 @@ public class HexBoard : MonoBehaviour
             colliders[i].enabled = visible;
         }
     }
-
-    // ---------------- Drop Preview ----------------
 
     private bool CanDropOnCell(HexCell cell)
     {
@@ -594,19 +596,16 @@ public class HexBoard : MonoBehaviour
         }
     }
 
-    // ---------------- Fail ----------------
-
     private bool IsBoardFull()
     {
-        foreach (var kvp in cells)
+        foreach (KeyValuePair<Hex, HexCell> pair in cells)
         {
-            HexCell cell = kvp.Value;
+            HexCell cell = pair.Value;
             if (cell != null && cell.Stack != null && cell.Stack.IsEmpty)
             {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -621,7 +620,6 @@ public class HexBoard : MonoBehaviour
         {
             hasFailed = true;
             CleanupDrag();
-
             if (scoreManager)
             {
                 scoreManager.ShowFailed();
@@ -629,11 +627,10 @@ public class HexBoard : MonoBehaviour
         }
     }
 
-    // ---------------- Resolve Loop ----------------
-
     private void RequestResolve()
     {
         resolveRequested = true;
+
         if (!resolveRunning)
         {
             StartCoroutine(ResolveLoop());
@@ -660,7 +657,7 @@ public class HexBoard : MonoBehaviour
     {
         EnqueueResolve(centerCell);
 
-        foreach (var neighborHex in centerCell.coord.Neighbours())
+        foreach (Hex neighborHex in centerCell.coord.Neighbours())
         {
             if (cells.TryGetValue(neighborHex, out HexCell neighborCell))
             {
@@ -676,6 +673,7 @@ public class HexBoard : MonoBehaviour
         while (true)
         {
             resolveRequested = false;
+
             bool didMove = true;
             int safety = 0;
 
@@ -715,7 +713,6 @@ public class HexBoard : MonoBehaviour
                     {
                         return qCompare;
                     }
-
                     return a.coord.row.CompareTo(b.coord.row);
                 });
 
@@ -764,6 +761,7 @@ public class HexBoard : MonoBehaviour
 
                     EnqueueResolveAround(sinkCell);
                     EnqueueResolveAround(sourceCell);
+
                     didMove = true;
                     break;
                 }
@@ -771,9 +769,9 @@ public class HexBoard : MonoBehaviour
 
             bool clearedAny = false;
 
-            foreach (var kvp in cells)
+            foreach (KeyValuePair<Hex, HexCell> pair in cells)
             {
-                HexCell cell = kvp.Value;
+                HexCell cell = pair.Value;
                 if (cell == null || cell.Stack.IsEmpty)
                 {
                     continue;
@@ -809,14 +807,14 @@ public class HexBoard : MonoBehaviour
                 for (int i = 0; i < vanishObjects.Count; i++)
                 {
                     GameObject tileObject = vanishObjects[i];
-                    GameObject tileObjectCopy = tileObject;
+                    GameObject safeObject = tileObject;
                     float delay = i * step;
 
-                    LeanTween.cancel(tileObjectCopy);
-                    LeanTween.scale(tileObjectCopy, Vector3.zero, duration)
+                    LeanTween.cancel(safeObject);
+                    LeanTween.scale(safeObject, Vector3.zero, duration)
                         .setEase(LeanTweenType.easeInBack)
                         .setDelay(delay)
-                        .setOnComplete(() => Destroy(tileObjectCopy));
+                        .setOnComplete(() => Destroy(safeObject));
                 }
 
                 float total = vanishObjects.Count > 0 ? ((vanishObjects.Count - 1) * step + duration) : duration;
@@ -824,6 +822,7 @@ public class HexBoard : MonoBehaviour
 
                 SyncCellViews(cell);
                 EnqueueResolveAround(cell);
+
                 clearedAny = true;
             }
 
@@ -859,9 +858,9 @@ public class HexBoard : MonoBehaviour
             return seedCell;
         }
 
-        foreach (var kvp in cells)
+        foreach (KeyValuePair<Hex, HexCell> pair in cells)
         {
-            HexCell cell = kvp.Value;
+            HexCell cell = pair.Value;
             if (cell != null && !cell.Stack.IsEmpty)
             {
                 return cell;
@@ -885,7 +884,7 @@ public class HexBoard : MonoBehaviour
             HexCell currentCell = frontier.Dequeue();
             result.Add(currentCell);
 
-            foreach (var neighborHex in currentCell.coord.Neighbours())
+            foreach (Hex neighborHex in currentCell.coord.Neighbours())
             {
                 if (!cells.TryGetValue(neighborHex, out HexCell neighborCell) || neighborCell == null)
                 {
@@ -923,15 +922,13 @@ public class HexBoard : MonoBehaviour
         int Degree(HexCell cell)
         {
             int degree = 0;
-
-            foreach (var neighborHex in cell.coord.Neighbours())
+            foreach (Hex neighborHex in cell.coord.Neighbours())
             {
                 if (cells.TryGetValue(neighborHex, out HexCell neighborCell) && neighborCell != null && groupSet.Contains(neighborCell))
                 {
                     degree++;
                 }
             }
-
             return degree;
         }
 
@@ -943,6 +940,7 @@ public class HexBoard : MonoBehaviour
         for (int i = 1; i < group.Count; i++)
         {
             HexCell candidateCell = group[i];
+
             int candidateDegree = Degree(candidateCell);
             int candidateRun = candidateCell.Stack.TopRunCount();
             int candidateCount = candidateCell.Stack.Count;
@@ -1006,8 +1004,10 @@ public class HexBoard : MonoBehaviour
 
             Vector3 flatFrom = tileObject.transform.position;
             flatFrom.y = 0f;
+
             Vector3 flatTo = targetPos;
             flatTo.y = 0f;
+
             Vector3 dir = (flatTo - flatFrom).normalized;
             if (dir.sqrMagnitude < 0.0001f)
             {
@@ -1030,13 +1030,11 @@ public class HexBoard : MonoBehaviour
         busyCells.Remove(toCell);
     }
 
-    // ---------------- Views ----------------
-
     private void SyncAllCells()
     {
-        foreach (var kvp in cells)
+        foreach (KeyValuePair<Hex, HexCell> pair in cells)
         {
-            SyncCellViews(kvp.Value);
+            SyncCellViews(pair.Value);
         }
     }
 
@@ -1062,7 +1060,7 @@ public class HexBoard : MonoBehaviour
         while (cell.views.Count < snapshot.Count)
         {
             GameObject tileObject = Instantiate(tilePrefab, tileRoot);
-            tileObject.name = $"Tile_{cell.coord}_{cell.views.Count}";
+            tileObject.name = "Tile_" + cell.coord.ToString() + "_" + cell.views.Count;
 
             Collider tileCollider = tileObject.GetComponentInChildren<Collider>();
             if (tileCollider)
@@ -1092,8 +1090,6 @@ public class HexBoard : MonoBehaviour
         }
     }
 
-    // ---------------- Ghost Build ----------------
-
     private void BuildGhostFromTiles(List<TileColor> tiles, Transform parent)
     {
         for (int childIndex = parent.childCount - 1; childIndex >= 0; childIndex--)
@@ -1104,6 +1100,7 @@ public class HexBoard : MonoBehaviour
         for (int i = 0; i < tiles.Count; i++)
         {
             TileColor tileColor = tiles[i];
+
             GameObject tileObject = Instantiate(tilePrefab, parent);
             tileObject.transform.localPosition = new Vector3(0, i * tileHeight, 0);
 
@@ -1124,13 +1121,11 @@ public class HexBoard : MonoBehaviour
         }
     }
 
-    // ---------------- Raycast ----------------
-
     private bool RaycastCell(Vector2 screenPos, out HexCell hitCell)
     {
         hitCell = null;
-        Ray ray = cam.ScreenPointToRay(screenPos);
 
+        Ray ray = cam.ScreenPointToRay(screenPos);
         if (!Physics.Raycast(ray, out RaycastHit hitInfo, 200f))
         {
             return false;
@@ -1143,8 +1138,8 @@ public class HexBoard : MonoBehaviour
     private bool RaycastHandPiece(Vector2 screenPos, out HandPiece hitPiece)
     {
         hitPiece = null;
-        Ray ray = cam.ScreenPointToRay(screenPos);
 
+        Ray ray = cam.ScreenPointToRay(screenPos);
         if (!Physics.Raycast(ray, out RaycastHit hitInfo, 200f))
         {
             return false;

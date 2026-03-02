@@ -582,7 +582,7 @@ Transform:
   m_GameObject: {fileID: 525430304}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.2, y: 0, z: -2}
+  m_LocalPosition: {x: 2, y: 0, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2108,7 +2108,7 @@ MonoBehaviour:
   randomPack: {fileID: 11400000, guid: ef4a06b5069942b40ab0a18ef70d9be9, type: 2}
   randomSeed: 0
   chooseRandomAnchorEachPack: 1
-  boardLayout: {fileID: 11400000, guid: c575c3931ed98a54fba8b616e1078df6, type: 2}
+  hexLevelLayout: {fileID: 11400000, guid: 4eed73dabcdaa1e4ab50879231ba52b8, type: 2}
   setAnchors:
   - {fileID: 525430305}
   - {fileID: 1570971051}
@@ -2326,7 +2326,7 @@ Transform:
   m_GameObject: {fileID: 1214139834}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.2, y: 0, z: -2}
+  m_LocalPosition: {x: 2, y: 0, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2538,7 +2538,7 @@ Transform:
   m_GameObject: {fileID: 1305951931}
   serializedVersion: 2
   m_LocalRotation: {x: 0.53729963, y: 0, z: 0, w: 0.8433915}
-  m_LocalPosition: {x: 1.44, y: 32.2, z: -13.78}
+  m_LocalPosition: {x: 2, y: 32.2, z: -13}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2601,7 +2601,7 @@ Transform:
   m_GameObject: {fileID: 1570971050}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.2, y: 0, z: -2}
+  m_LocalPosition: {x: 2, y: 0, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2814,6 +2814,9 @@ MonoBehaviour:
   failFadeDuration: 0.35
   failScaleDuration: 0.35
   failStartScale: 0.7
+  Score: 0
+  HasWon: 0
+  HasFailed: 0
 --- !u!4 &2031541993
 Transform:
   m_ObjectHideFlags: 0
@@ -3051,11 +3054,11 @@ SceneRoots:
   m_Roots:
   - {fileID: 2031541993}
   - {fileID: 1305951935}
-  - {fileID: 525430305}
   - {fileID: 1018170813}
-  - {fileID: 1214139835}
   - {fileID: 292210368}
   - {fileID: 1102297437}
   - {fileID: 2117494114}
+  - {fileID: 525430305}
   - {fileID: 1570971051}
+  - {fileID: 1214139835}
   - {fileID: 633285441}

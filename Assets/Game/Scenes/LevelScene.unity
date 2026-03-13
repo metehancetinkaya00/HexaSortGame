@@ -744,8 +744,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 461853729}
-        m_TargetAssemblyTypeName: SceneManageScript, Assembly-CSharp
-        m_MethodName: LoadNextScene
+        m_TargetAssemblyTypeName: SceneFlow, Assembly-CSharp
+        m_MethodName: NextLevelOrMenu
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -802,10 +802,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 461853724}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 428ba06971d7d384287770f3d04dae1a, type: 3}
+  m_Script: {fileID: 11500000, guid: 0eb6c4db00256cb41a04d423211f2397, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SceneManageScript
-  nextSceneBuildIndex: 2
+  m_EditorClassIdentifier: Assembly-CSharp::SceneFlow
+  mainMenuSceneName: MainMenu
+  levelSceneName: LevelScene
+  levelController: {fileID: 720324427}
 --- !u!1 &609163255
 GameObject:
   m_ObjectHideFlags: 0
@@ -943,6 +945,53 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 609163255}
   m_CullTransparentMesh: 1
+--- !u!1 &720324426
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 720324428}
+  - component: {fileID: 720324427}
+  m_Layer: 0
+  m_Name: LevelScene
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &720324427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 720324426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00aa063d78d9d8c408f1c1c737be7183, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelController
+  levelSequence: {fileID: 11400000, guid: 9dfb8ff7e0328214ab968bd89aaf75df, type: 2}
+  hexBoard: {fileID: 1113684067}
+  scoreManager: {fileID: 1159837238}
+--- !u!4 &720324428
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 720324426}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 540, y: 1415.3, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &728871968
 GameObject:
   m_ObjectHideFlags: 0
@@ -1584,7 +1633,6 @@ MonoBehaviour:
   levelText: {fileID: 1936721345}
   levelPrefix: Level
   levelSuffix: Completed
-  levelNumberOffset: 0
   targetScore: 20
   winObject: {fileID: 1988130002}
   failedObject: {fileID: 1727329522}
@@ -1596,9 +1644,6 @@ MonoBehaviour:
   failFadeDuration: 0.35
   failScaleDuration: 0.35
   failStartScale: 0.7
-  Score: 0
-  HasWon: 0
-  HasFailed: 0
 --- !u!4 &1159837239
 Transform:
   m_ObjectHideFlags: 0
@@ -2228,7 +2273,7 @@ GameObject:
   - component: {fileID: 1677794242}
   - component: {fileID: 1677794241}
   - component: {fileID: 1677794240}
-  - component: {fileID: 1677794239}
+  - component: {fileID: 1677794243}
   m_Layer: 5
   m_Name: Button
   m_TagString: Untagged
@@ -2256,19 +2301,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -746.9}
   m_SizeDelta: {x: 392.2, y: 111.6}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1677794239
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1677794237}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 428ba06971d7d384287770f3d04dae1a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SceneManageScript
-  nextSceneBuildIndex: 1
 --- !u!114 &1677794240
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2313,9 +2345,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1677794239}
-        m_TargetAssemblyTypeName: SceneManageScript, Assembly-CSharp
-        m_MethodName: ReloadScene
+      - m_Target: {fileID: 1677794243}
+        m_TargetAssemblyTypeName: SceneFlow, Assembly-CSharp
+        m_MethodName: RetryLevel
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2363,6 +2395,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1677794237}
   m_CullTransparentMesh: 1
+--- !u!114 &1677794243
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1677794237}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0eb6c4db00256cb41a04d423211f2397, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneFlow
+  mainMenuSceneName: MainMenu
+  levelSceneName: LevelScene
+  levelController: {fileID: 0}
 --- !u!1 &1727329522
 GameObject:
   m_ObjectHideFlags: 0
@@ -3062,3 +3109,4 @@ SceneRoots:
   - {fileID: 869422960}
   - {fileID: 1307055190}
   - {fileID: 1263140088}
+  - {fileID: 720324428}

@@ -10,7 +10,7 @@ public class HexBoard : MonoBehaviour
     public int randomSeed = 0;
     public bool chooseRandomAnchorEachPack = true;
 
-    [Header("Hex Level Layout (Optional)")]
+   
     public HexLevelLayout hexLevelLayout;
 
     [Header("Set Anchors")]
@@ -1147,5 +1147,82 @@ public class HexBoard : MonoBehaviour
 
         hitPiece = hitInfo.collider.GetComponentInParent<HandPiece>();
         return hitPiece != null;
+    }
+    public void RestartLevel()
+    {
+        StopAllCoroutines();
+
+        hasFailed = false;
+
+        dragSourcePiece = null;
+
+        if (dragGhostObject != null)
+        {
+            Destroy(dragGhostObject);
+            dragGhostObject = null;
+        }
+
+        if (hiddenSourceObject != null)
+        {
+            SetHandPieceVisible(hiddenSourceObject, true);
+            hiddenSourceObject = null;
+        }
+
+        resolveRunning = false;
+        resolveRequested = false;
+
+        resolveQueue.Clear();
+        queuedCells.Clear();
+        busyCells.Clear();
+
+        if (cellsRoot != null)
+        {
+            for (int i = cellsRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(cellsRoot.GetChild(i).gameObject);
+            }
+        }
+
+        if (tileRoot != null)
+        {
+            for (int i = tileRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(tileRoot.GetChild(i).gameObject);
+            }
+        }
+
+        ClearAllAnchorsHands();
+
+        cells.Clear();
+
+        rng = (randomSeed == 0) ? new System.Random() : new System.Random(randomSeed);
+
+        BuildBoardFromLayout();
+        SyncAllCells();
+
+        GenerateNextPack();
+    }
+
+    private void ClearAllAnchorsHands()
+    {
+        if (setAnchors == null)
+        {
+            return;
+        }
+
+        int slotCount = HandSlotCount;
+
+        for (int anchorIndex = 0; anchorIndex < setAnchors.Length; anchorIndex++)
+        {
+            Transform anchor = setAnchors[anchorIndex];
+
+            if (anchor == null)
+            {
+                continue;
+            }
+
+            EnsureHandSlots(anchor, slotCount);
+            ClearAnchorHand(anchor, slotCount);
+        }
     }
 }

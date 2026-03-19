@@ -1577,8 +1577,8 @@ MonoBehaviour:
   scoreManager: {fileID: 1159837238}
   dropIndicatorPrefab: {fileID: 6884843012821954442, guid: 80b2f66d70425304abd18dd82615c04e, type: 3}
   dropIndicatorY: 0.02
-  mergeMoveDuration: 0.2
-  mergeStepDelay: 0.01
+  mergeMoveDuration: 0.3
+  mergeStepDelay: 0.1
 --- !u!4 &1113684068
 Transform:
   m_ObjectHideFlags: 0

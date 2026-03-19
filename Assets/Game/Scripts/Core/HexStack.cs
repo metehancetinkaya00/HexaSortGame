@@ -51,6 +51,24 @@ public class HexStack
         tiles.AddRange(colors);
     }
 
+    public void PushOne(TileColor color)
+    {
+        tiles.Add(color);
+    }
+
+    public TileColor PopOne()
+    {
+        if (tiles.Count == 0)
+        {
+            throw new System.InvalidOperationException("Stack is empty.");
+        }
+
+        int lastIndex = tiles.Count - 1;
+        TileColor color = tiles[lastIndex];
+        tiles.RemoveAt(lastIndex);
+        return color;
+    }
+
     public int TopRunCount()
     {
         if (tiles.Count == 0)

@@ -1,13 +1,17 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class LevelController : MonoBehaviour
 {
+    [Header("References")]
     public LevelSequenceSO levelSequence;
-
     public HexBoard hexBoard;
     public ScoreManager scoreManager;
 
-    void Start()
+    [Header("Scene Names")]
+    public string mainMenuSceneName = "MainMenu";
+
+    private void Start()
     {
         ApplyCurrentLevel();
     }
@@ -53,7 +57,6 @@ public class LevelController : MonoBehaviour
         hexBoard.chooseRandomAnchorEachPack = level.chooseRandomAnchorEachPack;
 
         scoreManager.targetScore = level.targetScore;
-
         scoreManager.ResetScore();
         scoreManager.SetLevelNumber(levelIndex + 1);
 
@@ -72,8 +75,7 @@ public class LevelController : MonoBehaviour
             return false;
         }
 
-        int nextIndex = GameProgress.CurrentLevelIndex + 1;
-        return levelSequence.HasLevel(nextIndex);
+        return levelSequence.HasLevel(GameProgress.CurrentLevelIndex + 1);
     }
 
     public void LoadNextLevel()
@@ -85,5 +87,29 @@ public class LevelController : MonoBehaviour
 
         GameProgress.NextLevel();
         ApplyCurrentLevel();
+    }
+
+    public void CompleteLevelAndReturnToMenu()
+    {
+        if (levelSequence == null)
+        {
+            SceneManager.LoadScene(mainMenuSceneName);
+            return;
+        }
+
+        int levelIndex = GameProgress.CurrentLevelIndex;
+        LevelEntry level = levelSequence.GetLevel(levelIndex);
+
+        if (level != null)
+        {
+            TowerProgress.AddSteps(level.targetScore);
+        }
+
+        if (HasNextLevel())
+        {
+            GameProgress.NextLevel();
+        }
+
+        SceneManager.LoadScene(mainMenuSceneName);
     }
 }

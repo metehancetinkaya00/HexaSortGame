@@ -8,9 +8,15 @@ public class SceneFlow : MonoBehaviour
 
     public LevelController levelController;
 
-    public void PlayGame()
+    public void PlayNewGame()
     {
         GameProgress.ResetProgress();
+        TowerProgress.ResetTowerProgress();
+        SceneManager.LoadScene(levelSceneName);
+    }
+
+    public void ContinueGame()
+    {
         SceneManager.LoadScene(levelSceneName);
     }
 

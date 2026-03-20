@@ -743,9 +743,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 461853729}
-        m_TargetAssemblyTypeName: SceneFlow, Assembly-CSharp
-        m_MethodName: NextLevelOrMenu
+      - m_Target: {fileID: 720324427}
+        m_TargetAssemblyTypeName: LevelController, Assembly-CSharp
+        m_MethodName: CompleteLevelAndReturnToMenu
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -800,7 +800,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 461853724}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0eb6c4db00256cb41a04d423211f2397, type: 3}
   m_Name: 
@@ -977,6 +977,7 @@ MonoBehaviour:
   levelSequence: {fileID: 11400000, guid: 9dfb8ff7e0328214ab968bd89aaf75df, type: 2}
   hexBoard: {fileID: 1113684067}
   scoreManager: {fileID: 1159837238}
+  mainMenuSceneName: MainMenu
 --- !u!4 &720324428
 Transform:
   m_ObjectHideFlags: 0

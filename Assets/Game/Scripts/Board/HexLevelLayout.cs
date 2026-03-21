@@ -7,10 +7,18 @@ public enum HexGridOffsetMode
     EvenR = 1
 }
 
-public enum HexCellState
+public enum HexCellKind
 {
     Empty = 0,
-    Filled = 1
+    Normal = 1,
+    Locked = 2
+}
+
+public struct HexLayoutCellInfo
+{
+    public Hex coord;
+    public HexCellKind kind;
+    public int requiredClearCount;
 }
 
 [CreateAssetMenu(menuName = "Hexasort/Hex Level Layout", fileName = "HexLevelLayout")]
@@ -25,7 +33,8 @@ public class HexLevelLayout : ScriptableObject
     public int centerOffsetX = 0;
     public int centerOffsetY = 0;
 
-    public HexCellState[] cells;
+    public HexCellKind[] cellKinds;
+    public int[] requiredClearCounts;
 
     public void EnsureCellsSize()
     {
@@ -41,13 +50,17 @@ public class HexLevelLayout : ScriptableObject
 
         int targetSize = width * height;
 
-        if (cells == null)
+        if (cellKinds == null)
         {
-            cells = new HexCellState[targetSize];
-            return;
+            cellKinds = new HexCellKind[targetSize];
         }
 
-        if (cells.Length != targetSize)
+        if (requiredClearCounts == null)
+        {
+            requiredClearCounts = new int[targetSize];
+        }
+
+        if (cellKinds.Length != targetSize || requiredClearCounts.Length != targetSize)
         {
             Resize(width, height);
         }
@@ -67,15 +80,18 @@ public class HexLevelLayout : ScriptableObject
 
         int oldWidth = width;
         int oldHeight = height;
-        HexCellState[] oldCells = cells;
+
+        HexCellKind[] oldKinds = cellKinds;
+        int[] oldRequired = requiredClearCounts;
 
         width = newWidth;
         height = newHeight;
 
         int targetSize = width * height;
-        cells = new HexCellState[targetSize];
+        cellKinds = new HexCellKind[targetSize];
+        requiredClearCounts = new int[targetSize];
 
-        if (oldCells == null)
+        if (oldKinds == null || oldRequired == null)
         {
             return;
         }
@@ -90,37 +106,46 @@ public class HexLevelLayout : ScriptableObject
                 int oldIndex = y * oldWidth + x;
                 int newIndex = y * width + x;
 
-                if (oldIndex >= 0 && oldIndex < oldCells.Length && newIndex >= 0 && newIndex < cells.Length)
+                if (oldIndex >= 0 && oldIndex < oldKinds.Length)
                 {
-                    cells[newIndex] = oldCells[oldIndex];
+                    cellKinds[newIndex] = oldKinds[oldIndex];
+                }
+
+                if (oldIndex >= 0 && oldIndex < oldRequired.Length)
+                {
+                    requiredClearCounts[newIndex] = oldRequired[oldIndex];
                 }
             }
         }
     }
 
-    public HexCellState Get(int x, int y)
+    public HexCellKind GetKind(int x, int y)
     {
         if (x < 0 || y < 0 || x >= width || y >= height)
         {
-            return HexCellState.Empty;
+            return HexCellKind.Empty;
         }
 
-        if (cells == null)
-        {
-            return HexCellState.Empty;
-        }
+        EnsureCellsSize();
 
         int index = y * width + x;
-
-        if (index < 0 || index >= cells.Length)
-        {
-            return HexCellState.Empty;
-        }
-
-        return cells[index];
+        return cellKinds[index];
     }
 
-    public void Set(int x, int y, HexCellState value)
+    public int GetRequiredClearCount(int x, int y)
+    {
+        if (x < 0 || y < 0 || x >= width || y >= height)
+        {
+            return 0;
+        }
+
+        EnsureCellsSize();
+
+        int index = y * width + x;
+        return Mathf.Max(0, requiredClearCounts[index]);
+    }
+
+    public void SetKind(int x, int y, HexCellKind value)
     {
         if (x < 0 || y < 0 || x >= width || y >= height)
         {
@@ -130,22 +155,35 @@ public class HexLevelLayout : ScriptableObject
         EnsureCellsSize();
 
         int index = y * width + x;
+        cellKinds[index] = value;
 
-        if (index < 0 || index >= cells.Length)
+        if (value != HexCellKind.Locked)
+        {
+            requiredClearCounts[index] = 0;
+        }
+    }
+
+    public void SetRequiredClearCount(int x, int y, int value)
+    {
+        if (x < 0 || y < 0 || x >= width || y >= height)
         {
             return;
         }
 
-        cells[index] = value;
+        EnsureCellsSize();
+
+        int index = y * width + x;
+        requiredClearCounts[index] = Mathf.Max(0, value);
     }
 
     public void ClearAll()
     {
         EnsureCellsSize();
 
-        for (int i = 0; i < cells.Length; i++)
+        for (int i = 0; i < cellKinds.Length; i++)
         {
-            cells[i] = HexCellState.Empty;
+            cellKinds[i] = HexCellKind.Empty;
+            requiredClearCounts[i] = 0;
         }
     }
 
@@ -153,13 +191,14 @@ public class HexLevelLayout : ScriptableObject
     {
         EnsureCellsSize();
 
-        for (int i = 0; i < cells.Length; i++)
+        for (int i = 0; i < cellKinds.Length; i++)
         {
-            cells[i] = HexCellState.Filled;
+            cellKinds[i] = HexCellKind.Normal;
+            requiredClearCounts[i] = 0;
         }
     }
 
-    public IEnumerable<Hex> EnumerateHexes()
+    public IEnumerable<HexLayoutCellInfo> EnumerateCells()
     {
         EnsureCellsSize();
 
@@ -167,12 +206,18 @@ public class HexLevelLayout : ScriptableObject
         {
             for (int x = 0; x < width; x++)
             {
-                if (Get(x, y) != HexCellState.Filled)
+                HexCellKind kind = GetKind(x, y);
+                if (kind == HexCellKind.Empty)
                 {
                     continue;
                 }
 
-                yield return OffsetToAxial(x, y);
+                HexLayoutCellInfo info = new HexLayoutCellInfo();
+                info.coord = OffsetToAxial(x, y);
+                info.kind = kind;
+                info.requiredClearCount = GetRequiredClearCount(x, y);
+
+                yield return info;
             }
         }
     }

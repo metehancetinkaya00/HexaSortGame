@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using Grid;
 
 public class HexCell : MonoBehaviour
 {
@@ -13,12 +14,14 @@ public class HexCell : MonoBehaviour
 
     [Header("Lock State")]
     public HexCellKind cellKind = HexCellKind.Normal;
-    public int requiredClearCount = 0;
     public bool isUnlocked = true;
 
-    [Header("Optional Visuals")]
-    public GameObject lockedVisual;
+    [Header("Ice Lock")]
     public TMP_Text lockedCountText;
+    public GameTileIce iceTile;
+
+    private const int RequiredHitCount = 3;
+    private int currentHitCount = 0;
 
     public void Init(Hex newCoord)
     {
@@ -27,21 +30,27 @@ public class HexCell : MonoBehaviour
         name = $"Cell {coord}";
     }
 
-    public void SetupCellState(HexCellKind newKind, int newRequiredClearCount)
+    public void SetupCellState(HexCellKind newKind, int ignoredRequiredClearCount)
     {
         cellKind = newKind;
-        requiredClearCount = Mathf.Max(0, newRequiredClearCount);
 
         if (cellKind == HexCellKind.Locked)
         {
             isUnlocked = false;
+            currentHitCount = 0;
+
+            if (iceTile != null)
+            {
+                iceTile.ResetIce();
+            }
         }
         else
         {
             isUnlocked = true;
+            currentHitCount = 0;
         }
 
-        RefreshCellVisual(0);
+        RefreshCellVisual();
     }
 
     public bool IsAvailable()
@@ -59,7 +68,7 @@ public class HexCell : MonoBehaviour
         return true;
     }
 
-    public bool TryUnlock(int currentClearCount)
+    public bool DamageLock(int amount)
     {
         if (cellKind != HexCellKind.Locked)
         {
@@ -71,25 +80,70 @@ public class HexCell : MonoBehaviour
             return false;
         }
 
-        if (currentClearCount < requiredClearCount)
+        if (amount <= 0)
         {
-            RefreshCellVisual(currentClearCount);
             return false;
         }
 
-        isUnlocked = true;
-        RefreshCellVisual(currentClearCount);
+        for (int i = 0; i < amount; i++)
+        {
+            if (isUnlocked)
+            {
+                break;
+            }
+
+            currentHitCount++;
+
+            if (iceTile != null)
+            {
+                iceTile.MeltTile(
+                    onComplete: null,
+                    onMelt: OnIceFullyMelted
+                );
+            }
+
+            if (currentHitCount >= RequiredHitCount)
+            {
+                currentHitCount = RequiredHitCount;
+
+                if (iceTile == null)
+                {
+                    isUnlocked = true;
+                }
+
+                break;
+            }
+        }
+
+        RefreshCellVisual();
         return true;
     }
 
-    public void RefreshCellVisual(int currentClearCount)
+    private void OnIceFullyMelted()
+    {
+        isUnlocked = true;
+        RefreshCellVisual();
+    }
+
+    public int GetRemainingHitCount()
+    {
+        if (isUnlocked)
+        {
+            return 0;
+        }
+
+        int remaining = RequiredHitCount - currentHitCount;
+        if (remaining < 0)
+        {
+            remaining = 0;
+        }
+
+        return remaining;
+    }
+
+    public void RefreshCellVisual()
     {
         bool showLocked = cellKind == HexCellKind.Locked && !isUnlocked;
-
-        if (lockedVisual != null)
-        {
-            lockedVisual.SetActive(showLocked);
-        }
 
         if (lockedCountText != null)
         {
@@ -97,13 +151,25 @@ public class HexCell : MonoBehaviour
 
             if (showLocked)
             {
-                int remaining = requiredClearCount - currentClearCount;
-                if (remaining < 0)
-                {
-                    remaining = 0;
-                }
+                lockedCountText.text = GetRemainingHitCount().ToString();
+            }
+        }
 
-                lockedCountText.text = remaining.ToString();
+        if (iceTile != null && iceTile.gameObject != null)
+        {
+            if (!showLocked)
+            {
+                if (iceTile.gameObject.activeSelf)
+                {
+                    iceTile.gameObject.SetActive(false);
+                }
+            }
+            else
+            {
+                if (!iceTile.gameObject.activeSelf)
+                {
+                    iceTile.gameObject.SetActive(true);
+                }
             }
         }
     }

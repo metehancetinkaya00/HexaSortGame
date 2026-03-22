@@ -72,7 +72,6 @@ public class HexBoard : MonoBehaviour
     private GameObject dropIndicatorObject;
 
     private bool hasFailed;
-    private int totalClearCount;
 
     private int HandSlotCount
     {
@@ -211,7 +210,7 @@ public class HexBoard : MonoBehaviour
                 cellInstance.transform.position = cellInfo.coord.ToWorld(yCell);
                 cellInstance.Stack.SetTiles(System.Array.Empty<TileColor>());
                 cellInstance.SetupCellState(cellInfo.kind, cellInfo.requiredClearCount);
-                cellInstance.RefreshCellVisual(totalClearCount);
+                cellInstance.RefreshCellVisual();
 
                 cells[cellInfo.coord] = cellInstance;
             }
@@ -225,16 +224,13 @@ public class HexBoard : MonoBehaviour
                 cellInstance.transform.position = hexCoord.ToWorld(yCell);
                 cellInstance.Stack.SetTiles(System.Array.Empty<TileColor>());
                 cellInstance.SetupCellState(HexCellKind.Normal, 0);
-                cellInstance.RefreshCellVisual(totalClearCount);
+                cellInstance.RefreshCellVisual();
 
                 cells[hexCoord] = cellInstance;
             }
         }
     }
 
-
-
-  
     private void GenerateNextPack()
     {
         if (chooseRandomAnchorEachPack)
@@ -377,7 +373,9 @@ public class HexBoard : MonoBehaviour
     private bool WasPressedThisFrame()
     {
         if (Touchscreen.current != null)
+        {
             return Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
+        }
 
         return Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
     }
@@ -385,7 +383,9 @@ public class HexBoard : MonoBehaviour
     private bool WasReleasedThisFrame()
     {
         if (Touchscreen.current != null)
+        {
             return Touchscreen.current.primaryTouch.press.wasReleasedThisFrame;
+        }
 
         return Mouse.current != null && Mouse.current.leftButton.wasReleasedThisFrame;
     }
@@ -393,7 +393,9 @@ public class HexBoard : MonoBehaviour
     private bool IsPressed()
     {
         if (Touchscreen.current != null)
+        {
             return Touchscreen.current.primaryTouch.press.isPressed;
+        }
 
         return Mouse.current != null && Mouse.current.leftButton.isPressed;
     }
@@ -401,7 +403,9 @@ public class HexBoard : MonoBehaviour
     private void TryBeginDrag(Vector2 screenPos)
     {
         if (dragGhostObject != null)
+        {
             return;
+        }
 
         if (RaycastHandPiece(screenPos, out HandPiece hitPiece) &&
             hitPiece != null &&
@@ -425,7 +429,7 @@ public class HexBoard : MonoBehaviour
 
     private void DragUpdate(Vector2 screenPos)
     {
-        if (dragGhostObject == null)
+        if (!dragGhostObject)
         {
             HideDropPreview();
             return;
@@ -488,7 +492,9 @@ public class HexBoard : MonoBehaviour
 
         piecesLeftInPack--;
         if (piecesLeftInPack <= 0)
+        {
             GenerateNextPack();
+        }
 
         RequestResolveFromCell(targetCell);
         CheckFailNow();
@@ -496,8 +502,10 @@ public class HexBoard : MonoBehaviour
 
     private void CleanupDrag()
     {
-        if (dragGhostObject != null)
+        if (dragGhostObject)
+        {
             Destroy(dragGhostObject);
+        }
 
         dragGhostObject = null;
 
@@ -513,8 +521,10 @@ public class HexBoard : MonoBehaviour
 
     private void SetHandPieceVisible(GameObject pieceObject, bool visible)
     {
-        if (pieceObject == null)
+        if (!pieceObject)
+        {
             return;
+        }
 
         Renderer[] renderers = pieceObject.GetComponentsInChildren<Renderer>(true);
         for (int i = 0; i < renderers.Length; i++)
@@ -553,21 +563,22 @@ public class HexBoard : MonoBehaviour
 
         return true;
     }
+
     private void UpdateDropPreview(Vector2 screenPos)
     {
-        if (dropIndicatorObject == null)
+        if (!dropIndicatorObject)
+        {
             return;
+        }
 
-        bool isDragging = dragGhostObject != null && dragSourcePiece != null;
+        bool isDragging = (dragGhostObject != null) && (dragSourcePiece != null);
         if (!isDragging)
         {
             dropIndicatorObject.SetActive(false);
             return;
         }
 
-        if (RaycastCell(screenPos, out HexCell targetCell) &&
-            targetCell != null &&
-            CanDropOnCell(targetCell))
+        if (RaycastCell(screenPos, out HexCell targetCell) && targetCell != null && CanDropOnCell(targetCell))
         {
             dropIndicatorObject.SetActive(true);
             Vector3 cellWorldPos = targetCell.transform.position;
@@ -582,8 +593,10 @@ public class HexBoard : MonoBehaviour
 
     private void HideDropPreview()
     {
-        if (dropIndicatorObject != null)
+        if (dropIndicatorObject)
+        {
             dropIndicatorObject.SetActive(false);
+        }
     }
 
     private bool IsBoardFull()
@@ -592,46 +605,58 @@ public class HexBoard : MonoBehaviour
         {
             HexCell cell = pair.Value;
             if (cell != null && cell.Stack != null && cell.IsAvailable() && cell.Stack.IsEmpty)
+            {
                 return false;
+            }
         }
-
         return true;
     }
 
     private void CheckFailNow()
     {
         if (hasFailed)
+        {
             return;
+        }
 
         if (IsBoardFull())
         {
             hasFailed = true;
             CleanupDrag();
-
-            if (scoreManager != null)
+            if (scoreManager)
+            {
                 scoreManager.ShowFailed();
+            }
         }
     }
 
     private void RequestResolveFromCell(HexCell cell)
     {
         if (cell == null)
+        {
             return;
+        }
 
         resolveRequested = true;
         EnqueueResolve(cell);
 
         if (!resolveRunning)
+        {
             StartCoroutine(ResolveLoop());
+        }
     }
 
     private void EnqueueResolve(HexCell cell)
     {
-        if (cell == null)
+        if (!cell)
+        {
             return;
+        }
 
         if (queuedCells.Contains(cell))
+        {
             return;
+        }
 
         queuedCells.Add(cell);
         resolveQueue.Enqueue(cell);
@@ -647,11 +672,11 @@ public class HexBoard : MonoBehaviour
 
             HexCell cell = GetNextSeedCell();
             if (cell == null)
+            {
                 break;
+            }
 
             yield return StartCoroutine(CheckForMerge(cell));
-            totalClearCount++;
-            UnlockCellsIfNeeded();
         }
 
         resolveRunning = false;
@@ -668,17 +693,23 @@ public class HexBoard : MonoBehaviour
             queuedCells.Remove(queuedCell);
 
             if (queuedCell != null && queuedCell.Stack != null && !queuedCell.Stack.IsEmpty)
+            {
                 seedCell = queuedCell;
+            }
         }
 
         if (seedCell != null)
+        {
             return seedCell;
+        }
 
         foreach (KeyValuePair<Hex, HexCell> pair in cells)
         {
             HexCell cell = pair.Value;
-            if (cell != null && cell.Stack != null && !cell.Stack.IsEmpty)
+            if (cell != null && !cell.Stack.IsEmpty)
+            {
                 return cell;
+            }
         }
 
         return null;
@@ -687,22 +718,32 @@ public class HexBoard : MonoBehaviour
     private IEnumerator CheckForMerge(HexCell gridCell)
     {
         if (gridCell == null || gridCell.Stack == null || gridCell.Stack.IsEmpty)
+        {
             yield break;
+        }
 
         if (busyCells.Contains(gridCell))
+        {
             yield break;
+        }
 
         List<HexCell> neighborGridCells = GetOccupiedNeighborCells(gridCell);
         if (neighborGridCells.Count <= 0)
+        {
             yield break;
+        }
 
         TileColor? topColor = gridCell.Stack.TopColor;
         if (topColor == null)
+        {
             yield break;
+        }
 
         List<HexCell> similarNeighborGridCells = GetSimilarNeighborCells(topColor.Value, neighborGridCells);
         if (similarNeighborGridCells.Count <= 0)
+        {
             yield break;
+        }
 
         List<HexCell> updatedCells = new List<HexCell>();
         updatedCells.Add(gridCell);
@@ -714,7 +755,9 @@ public class HexBoard : MonoBehaviour
         for (int i = 0; i < updatedCells.Count; i++)
         {
             if (updatedCells[i] != null)
+            {
                 EnqueueResolve(updatedCells[i]);
+            }
         }
     }
 
@@ -725,10 +768,14 @@ public class HexBoard : MonoBehaviour
         foreach (Hex neighborHex in gridCell.coord.Neighbours())
         {
             if (!cells.TryGetValue(neighborHex, out HexCell neighborCell))
+            {
                 continue;
+            }
 
             if (neighborCell == null || neighborCell.Stack == null || neighborCell.Stack.IsEmpty)
+            {
                 continue;
+            }
 
             result.Add(neighborCell);
         }
@@ -744,14 +791,20 @@ public class HexBoard : MonoBehaviour
         {
             HexCell neighborCell = neighbors[i];
             if (neighborCell == null || neighborCell.Stack == null || neighborCell.Stack.IsEmpty)
+            {
                 continue;
+            }
 
             TileColor? neighborTop = neighborCell.Stack.TopColor;
             if (neighborTop == null)
+            {
                 continue;
+            }
 
             if (neighborTop.Value == targetColor)
+            {
                 result.Add(neighborCell);
+            }
         }
 
         return result;
@@ -760,24 +813,32 @@ public class HexBoard : MonoBehaviour
     private IEnumerator MoveHexagonsToCell(HexCell targetCell, List<HexCell> sourceCells, TileColor targetColor)
     {
         if (targetCell == null || sourceCells == null || sourceCells.Count == 0)
+        {
             yield break;
+        }
 
         for (int i = 0; i < sourceCells.Count; i++)
         {
             HexCell sourceCell = sourceCells[i];
 
             if (sourceCell == null || sourceCell == targetCell)
+            {
                 continue;
+            }
 
             if (busyCells.Contains(sourceCell) || busyCells.Contains(targetCell))
+            {
                 continue;
+            }
 
             SyncCellViews(sourceCell);
             SyncCellViews(targetCell);
 
             List<TileColor> movingPack = sourceCell.Stack.PopTopRun();
             if (movingPack.Count == 0)
+            {
                 continue;
+            }
 
             if (movingPack[0] != targetColor)
             {
@@ -805,7 +866,9 @@ public class HexBoard : MonoBehaviour
     private IEnumerator AnimateTransferredViews(HexCell fromCell, HexCell toCell, List<GameObject> movedViews)
     {
         if (fromCell == null || toCell == null || movedViews == null || movedViews.Count == 0)
+        {
             yield break;
+        }
 
         busyCells.Add(fromCell);
         busyCells.Add(toCell);
@@ -845,13 +908,17 @@ public class HexBoard : MonoBehaviour
     private IEnumerator CheckAndClearCell(HexCell gridCell)
     {
         if (gridCell == null || gridCell.Stack == null || gridCell.Stack.IsEmpty)
+        {
             yield break;
+        }
 
         SyncCellViews(gridCell);
 
         int similarHexagonCount = gridCell.Stack.TopRunCount();
         if (similarHexagonCount < clearCount)
+        {
             yield break;
+        }
 
         List<TileColor> removedRun = gridCell.Stack.PopTopRun();
         if (removedRun.Count < clearCount)
@@ -864,8 +931,10 @@ public class HexBoard : MonoBehaviour
         List<GameObject> similarHexagons = gridCell.views.GetRange(startIndex, removedRun.Count);
         gridCell.views.RemoveRange(startIndex, similarHexagons.Count);
 
-        if (scoreManager != null)
+        if (scoreManager)
+        {
             scoreManager.AddScore(similarHexagons.Count);
+        }
 
         float delay = 0f;
         float step = 0.01f;
@@ -882,24 +951,35 @@ public class HexBoard : MonoBehaviour
 
         SyncCellViews(gridCell);
 
-        totalClearCount++;
-        UnlockCellsIfNeeded();
+        DamageNeighborLocks(gridCell);
+
+        EnqueueResolve(gridCell);
     }
 
-    private void UnlockCellsIfNeeded()
+    private void DamageNeighborLocks(HexCell centerCell)
     {
-        foreach (KeyValuePair<Hex, HexCell> pair in cells)
+        if (centerCell == null)
         {
-            HexCell cell = pair.Value;
-            if (cell == null)
+            return;
+        }
+
+        foreach (Hex neighborHex in centerCell.coord.Neighbours())
+        {
+            if (!cells.TryGetValue(neighborHex, out HexCell neighborCell))
             {
                 continue;
             }
 
-            cell.TryUnlock(totalClearCount);
-            cell.RefreshCellVisual(totalClearCount);
+            if (neighborCell == null)
+            {
+                continue;
+            }
+
+            neighborCell.DamageLock(1);
+            neighborCell.RefreshCellVisual();
         }
     }
+
     private void SyncAllCells()
     {
         foreach (KeyValuePair<Hex, HexCell> pair in cells)
@@ -911,7 +991,9 @@ public class HexBoard : MonoBehaviour
     private void SyncCellViews(HexCell cell)
     {
         if (cell == null)
+        {
             return;
+        }
 
         List<TileColor> snapshot = new List<TileColor>(cell.Stack.Snapshot());
 
@@ -919,19 +1001,22 @@ public class HexBoard : MonoBehaviour
         {
             GameObject viewObject = cell.views[cell.views.Count - 1];
             cell.views.RemoveAt(cell.views.Count - 1);
-
-            if (viewObject != null)
+            if (viewObject)
+            {
                 Destroy(viewObject);
+            }
         }
 
         while (cell.views.Count < snapshot.Count)
         {
             GameObject tileObject = Instantiate(tilePrefab, tileRoot);
-            tileObject.name = "Tile_" + cell.coord + "_" + cell.views.Count;
+            tileObject.name = "Tile_" + cell.coord.ToString() + "_" + cell.views.Count;
 
             Collider tileCollider = tileObject.GetComponentInChildren<Collider>();
-            if (tileCollider != null)
+            if (tileCollider)
+            {
                 tileCollider.enabled = false;
+            }
 
             cell.views.Add(tileObject);
         }
@@ -945,19 +1030,18 @@ public class HexBoard : MonoBehaviour
             tileObject.transform.position = new Vector3(basePos.x, yCell + index * tileHeight, basePos.z);
 
             HexTileView view = tileObject.GetComponent<HexTileView>();
-            if (view == null)
+            if (!view)
+            {
                 view = tileObject.AddComponent<HexTileView>();
+            }
 
-            Material mat = ((int)tileColor >= 0 && (int)tileColor < colorMaterials.Length)
-                ? colorMaterials[(int)tileColor]
-                : null;
-
+            Material mat = ((int)tileColor >= 0 && (int)tileColor < colorMaterials.Length) ? colorMaterials[(int)tileColor] : null;
             view.Init(tileColor, index, mat);
         }
 
-        cell.RefreshCellVisual(totalClearCount);
+        cell.RefreshCellVisual();
     }
-    
+
     private void BuildGhostFromTiles(List<TileColor> tiles, Transform parent)
     {
         for (int childIndex = parent.childCount - 1; childIndex >= 0; childIndex--)
@@ -970,29 +1054,37 @@ public class HexBoard : MonoBehaviour
             TileColor tileColor = tiles[i];
 
             GameObject tileObject = Instantiate(tilePrefab, parent);
-            tileObject.transform.localPosition = new Vector3(0f, i * tileHeight, 0f);
+            tileObject.transform.localPosition = new Vector3(0, i * tileHeight, 0);
 
             HexTileView view = tileObject.GetComponent<HexTileView>();
-            if (view == null)
+            if (!view)
+            {
                 view = tileObject.AddComponent<HexTileView>();
+            }
 
             Material mat = colorMaterials[(int)tileColor];
             view.Init(tileColor, i, mat);
 
             Collider tileCollider = tileObject.GetComponentInChildren<Collider>();
-            if (tileCollider != null)
+            if (tileCollider)
+            {
                 tileCollider.enabled = false;
+            }
         }
     }
 
     private void VanishTile(GameObject tileObject, float delay, float duration)
     {
         if (tileObject == null)
+        {
             return;
+        }
 
         Collider tileCollider = tileObject.GetComponentInChildren<Collider>();
         if (tileCollider != null)
+        {
             tileCollider.enabled = false;
+        }
 
         LeanTween.cancel(tileObject);
 
@@ -1005,7 +1097,9 @@ public class HexBoard : MonoBehaviour
     private void MoveTileToWorld(GameObject tileObject, Vector3 targetWorldPos, float delay, float duration)
     {
         if (tileObject == null)
+        {
             return;
+        }
 
         LeanTween.cancel(tileObject);
 
@@ -1021,7 +1115,9 @@ public class HexBoard : MonoBehaviour
 
         Vector3 direction = (flatTo - flatFrom).normalized;
         if (direction.sqrMagnitude < 0.0001f)
+        {
             direction = Vector3.forward;
+        }
 
         Vector3 rotationAxis = Vector3.Cross(Vector3.up, direction);
 
@@ -1036,7 +1132,9 @@ public class HexBoard : MonoBehaviour
 
         Ray ray = cam.ScreenPointToRay(screenPos);
         if (!Physics.Raycast(ray, out RaycastHit hitInfo, 200f))
+        {
             return false;
+        }
 
         hitCell = hitInfo.collider.GetComponentInParent<HexCell>();
         return hitCell != null;
@@ -1048,7 +1146,9 @@ public class HexBoard : MonoBehaviour
 
         Ray ray = cam.ScreenPointToRay(screenPos);
         if (!Physics.Raycast(ray, out RaycastHit hitInfo, 200f))
+        {
             return false;
+        }
 
         hitPiece = hitInfo.collider.GetComponentInParent<HandPiece>();
         return hitPiece != null;
@@ -1059,7 +1159,7 @@ public class HexBoard : MonoBehaviour
         StopAllCoroutines();
 
         hasFailed = false;
-        totalClearCount = 0;
+
         dragSourcePiece = null;
 
         if (dragGhostObject != null)
@@ -1098,27 +1198,34 @@ public class HexBoard : MonoBehaviour
         }
 
         ClearAllAnchorsHands();
+
         cells.Clear();
 
-        rng = randomSeed == 0 ? new System.Random() : new System.Random(randomSeed);
+        rng = (randomSeed == 0) ? new System.Random() : new System.Random(randomSeed);
 
         BuildBoardFromLayout();
         SyncAllCells();
+
         GenerateNextPack();
     }
 
     private void ClearAllAnchorsHands()
     {
         if (setAnchors == null)
+        {
             return;
+        }
 
         int slotCount = HandSlotCount;
 
-        for (int i = 0; i < setAnchors.Length; i++)
+        for (int anchorIndex = 0; anchorIndex < setAnchors.Length; anchorIndex++)
         {
-            Transform anchor = setAnchors[i];
+            Transform anchor = setAnchors[anchorIndex];
+
             if (anchor == null)
+            {
                 continue;
+            }
 
             EnsureHandSlots(anchor, slotCount);
             ClearAnchorHand(anchor, slotCount);

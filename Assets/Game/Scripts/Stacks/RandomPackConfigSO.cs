@@ -15,6 +15,9 @@ public class RandomPackConfigSO : ScriptableObject
     [Header("Allowed Colors + Weights (0 = never)")]
     public List<ColorWeight> weights = new();
 
+  
+    private TileColor[] _allColors;
+
     [Serializable]
     public struct ColorWeight
     {
@@ -24,10 +27,7 @@ public class RandomPackConfigSO : ScriptableObject
 
     public List<TileColor> GeneratePiece(System.Random rng)
     {
-        if (rng == null)
-        {
-            rng = new System.Random();
-        }
+        rng ??= new System.Random();
 
         int min = Mathf.Max(1, minHexPerPiece);
         int max = Mathf.Max(min, maxHexPerPiece);
@@ -35,9 +35,7 @@ public class RandomPackConfigSO : ScriptableObject
 
         var result = new List<TileColor>(count);
         for (int i = 0; i < count; i++)
-        {
             result.Add(PickWeightedColor(rng));
-        }
 
         return result;
     }
@@ -45,40 +43,36 @@ public class RandomPackConfigSO : ScriptableObject
     private TileColor PickWeightedColor(System.Random rng)
     {
         if (weights == null || weights.Count == 0)
-        {
             return PickAnyColor(rng);
-        }
 
         float total = 0f;
         for (int i = 0; i < weights.Count; i++)
-        {
             total += Mathf.Max(0f, weights[i].weight);
-        }
 
+      
         if (total <= 0.0001f)
-        {
             return PickAnyColor(rng);
-        }
 
         float roll = (float)(rng.NextDouble() * total);
         float acc = 0f;
 
         for (int i = 0; i < weights.Count; i++)
         {
-            float w = Mathf.Max(0f, weights[i].weight);
-            acc += w;
+            acc += Mathf.Max(0f, weights[i].weight);
             if (roll <= acc)
-            {
                 return weights[i].color;
-            }
         }
 
+     
         return weights[weights.Count - 1].color;
     }
 
-    private static TileColor PickAnyColor(System.Random rng)
+    private TileColor PickAnyColor(System.Random rng)
     {
-        var values = (TileColor[])Enum.GetValues(typeof(TileColor));
-        return values[rng.Next(0, values.Length)];
+     
+        if (_allColors == null)
+            _allColors = (TileColor[])Enum.GetValues(typeof(TileColor));
+
+        return _allColors[rng.Next(0, _allColors.Length)];
     }
 }

@@ -13,6 +13,9 @@ namespace Grid
         public Animator animator;
         public string hitTriggerName = "Melt";
 
+    
+        private const int MaxMeltCount = 3;
+
         private int meltCount = 0;
 
         public void ResetIce()
@@ -21,12 +24,10 @@ namespace Grid
 
             if (icePieces != null)
             {
-                for (int i = 0; i < icePieces.Length; i++)
+                foreach (var piece in icePieces)
                 {
-                    if (icePieces[i] != null)
-                    {
-                        icePieces[i].SetActive(true);
-                    }
+                    if (piece != null)
+                        piece.SetActive(true);
                 }
             }
 
@@ -35,17 +36,13 @@ namespace Grid
 
         public void MeltTile(Action onComplete = null, Action onMelt = null)
         {
-            if (meltCount >= 3)
-            {
+            if (meltCount >= MaxMeltCount)
                 return;
-            }
 
             meltCount++;
 
             if (animator != null && !string.IsNullOrEmpty(hitTriggerName))
-            {
                 animator.SetTrigger(hitTriggerName);
-            }
 
             HideOneIcePiece();
 
@@ -55,39 +52,26 @@ namespace Grid
         private void HideOneIcePiece()
         {
             if (icePieces == null || icePieces.Length == 0)
-            {
                 return;
-            }
 
+        
             int pieceIndex = meltCount - 1;
 
-            if (pieceIndex >= 0 && pieceIndex < icePieces.Length)
-            {
-                if (icePieces[pieceIndex] != null)
-                {
-                    icePieces[pieceIndex].SetActive(false);
-                }
-            }
+            if (pieceIndex >= 0 && pieceIndex < icePieces.Length && icePieces[pieceIndex] != null)
+                icePieces[pieceIndex].SetActive(false);
         }
 
         private IEnumerator MeltRoutine(Action onComplete, Action onMelt)
         {
             yield return new WaitForSeconds(0.1f);
 
-            if (onComplete != null)
-            {
-                onComplete.Invoke();
-            }
+            onComplete?.Invoke();
 
-            if (meltCount >= 3)
+            if (meltCount >= MaxMeltCount)
             {
                 yield return new WaitForSeconds(0.15f);
 
-                if (onMelt != null)
-                {
-                    onMelt.Invoke();
-                }
-
+                onMelt?.Invoke();
                 Destroy(gameObject);
             }
         }

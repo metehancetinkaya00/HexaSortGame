@@ -6,6 +6,7 @@ public static class HexVectorExtensions
 {
     public static Vector2 WorldToPlanar(this Vector3 world)
     {
+   
         return new Vector2(world.x, world.z);
     }
 
@@ -30,17 +31,22 @@ public static class HexVectorExtensions
     }
 }
 
+
+// reference: https://www.redblobgames.com/grids/hexagons/
 [Serializable]
 public struct Hex : IEquatable<Hex>
 {
     public static float radius = 0.5f;
 
+ 
     public static Vector2 qBasis = new Vector2(2f, 0f) * radius;
     public static Vector2 rBasis = new Vector2(1f, Mathf.Sqrt(3f)) * radius;
 
+  
     public static Vector2 qInverse = new Vector2(0.5f, -Mathf.Sqrt(3f) / 6f);
     public static Vector2 rInverse = new Vector2(0f, Mathf.Sqrt(3f) / 3f);
 
+   
     public static Hex[] directions = new Hex[]
     {
         new Hex(1, 0),
@@ -106,15 +112,18 @@ public struct Hex : IEquatable<Hex>
     {
         int index = dir % directions.Length;
         if (index < 0)
-        {
             index += directions.Length;
-        }
+
         return this + directions[index];
     }
 
+    // cube coordinate distance 
+    // i used this: https://www.redblobgames.com/grids/hexagons/#distances
     public int DistanceTo(Hex other)
     {
-        return (Mathf.Abs(col - other.col)+ Mathf.Abs(col + row - other.col - other.row)  + Mathf.Abs(row - other.row)) / 2;
+        int dcol = col - other.col;
+        int drow = row - other.row;
+        return (Mathf.Abs(dcol) + Mathf.Abs(dcol + drow) + Mathf.Abs(drow)) / 2;
     }
 
     public static Hex operator +(Hex a, Hex b)
@@ -127,13 +136,13 @@ public struct Hex : IEquatable<Hex>
         return new Hex(a.col - b.col, a.row - b.row);
     }
 
+
     public static IEnumerable<Hex> Ring(Hex center, int radius)
     {
         if (radius <= 0)
-        {
             yield break;
-        }
 
+    
         Hex current = center + new Hex(0, -radius);
 
         for (int directionIndex = 0; directionIndex < directions.Length; directionIndex++)
@@ -155,71 +164,51 @@ public struct Hex : IEquatable<Hex>
             minRadius = 1;
         }
 
-        for (int radius = minRadius; radius <= maxRadius; radius++)
+        for (int r = minRadius; r <= maxRadius; r++)
         {
-            foreach (Hex hex in Ring(center, radius))
-            {
+            foreach (var hex in Ring(center, r))
                 yield return hex;
-            }
         }
     }
 
+  
     public static IEnumerable<Hex> FloodFill(IEnumerable<Hex> startFrom)
     {
         if (startFrom == null)
-        {
             yield break;
-        }
 
-        HashSet<Hex> visited = new HashSet<Hex>();
-        Queue<Hex> frontier = new Queue<Hex>();
+        var visited = new HashSet<Hex>();
+        var frontier = new Queue<Hex>();
 
-        foreach (Hex startCell in startFrom)
+        foreach (var start in startFrom)
         {
-            if (visited.Add(startCell))
-            {
-                frontier.Enqueue(startCell);
-            }
+            if (visited.Add(start))
+                frontier.Enqueue(start);
         }
 
         while (frontier.Count > 0)
         {
-            Hex current = frontier.Dequeue();
+            var current = frontier.Dequeue();
             yield return current;
 
-            foreach (Hex next in current.Neighbours())
+            foreach (var next in current.Neighbours())
             {
                 if (visited.Add(next))
-                {
                     frontier.Enqueue(next);
-                }
             }
         }
     }
 
-    public bool Equals(Hex other)
-    {
-        return col == other.col && row == other.row;
-    }
+    public bool Equals(Hex other) => col == other.col && row == other.row;
 
     public override bool Equals(object obj)
     {
-        if (!(obj is Hex))
-        {
-            return false;
-        }
-
-        Hex other = (Hex)obj;
-        return Equals(other);
+        if (obj is Hex other)
+            return Equals(other);
+        return false;
     }
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(col, row);
-    }
+    public override int GetHashCode() => HashCode.Combine(col, row);
 
-    public override string ToString()
-    {
-        return "(" + col + ";" + row + ")";
-    }
+    public override string ToString() => $"({col};{row})";
 }

@@ -27,15 +27,13 @@ public class SceneFlow : MonoBehaviour
 
     public void NextLevelOrMenu()
     {
-        if (levelController != null)
+        if (levelController != null && levelController.HasNextLevel())
         {
-            if (levelController.HasNextLevel())
-            {
-                levelController.LoadNextLevel();
-                return;
-            }
+            levelController.LoadNextLevel();
+            return;
         }
 
+      
         SceneManager.LoadScene(mainMenuSceneName);
     }
 
@@ -47,6 +45,7 @@ public class SceneFlow : MonoBehaviour
             return;
         }
 
+      
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }

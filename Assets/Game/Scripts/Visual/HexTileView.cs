@@ -12,14 +12,11 @@ public class HexTileView : MonoBehaviour
         color = c;
         indexInStack = index;
 
+    
         if (!rend)
-        {
             rend = GetComponentInChildren<Renderer>();
-        }
 
         if (rend && mat)
-        {
             rend.sharedMaterial = mat;
-        }
     }
 }

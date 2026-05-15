@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
+
 [CreateAssetMenu(menuName = "Hexasort/Board Layout", fileName = "BoardLayout")]
 public class BoardLayoutSO : ScriptableObject
 {
@@ -9,25 +10,18 @@ public class BoardLayoutSO : ScriptableObject
     public bool Contains(int q, int r)
     {
         if (cells == null)
-        {
             return false;
-        }
 
-        for (int i = 0; i < cells.Count; i++)
+        foreach (var row in cells)
         {
-            var row = cells[i];
-            if (row == null || row.items == null)
-            {
+            if (row?.items == null)
                 continue;
-            }
 
-            for (int j = 0; j < row.items.Count; j++)
+            foreach (var coord in row.items)
             {
-                Hex h = row.items[j].ToHex();
+                var h = coord.ToHex();
                 if (h.col == q && h.row == r)
-                {
                     return true;
-                }
             }
         }
 
@@ -37,22 +31,15 @@ public class BoardLayoutSO : ScriptableObject
     public IEnumerable<Hex> EnumerateHexes()
     {
         if (cells == null)
-        {
             yield break;
-        }
 
-        for (int i = 0; i < cells.Count; i++)
+        foreach (var row in cells)
         {
-            var row = cells[i];
-            if (row == null || row.items == null)
-            {
+            if (row?.items == null)
                 continue;
-            }
 
-            for (int j = 0; j < row.items.Count; j++)
-            {
-                yield return row.items[j].ToHex();
-            }
+            foreach (var coord in row.items)
+                yield return coord.ToHex();
         }
     }
 }
@@ -62,6 +49,7 @@ public class HexCoordList
 {
     public List<HexCoord> items = new();
 }
+
 
 [System.Serializable]
 public struct HexCoord
@@ -75,8 +63,5 @@ public struct HexCoord
         this.r = r;
     }
 
-    public Hex ToHex()
-    {
-        return new Hex(Mathf.RoundToInt(q), Mathf.RoundToInt(r));
-    }
+    public Hex ToHex() => new Hex(Mathf.RoundToInt(q), Mathf.RoundToInt(r));
 }

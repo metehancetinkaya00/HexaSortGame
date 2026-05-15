@@ -16,7 +16,7 @@ public class HexLevelLayoutEditor : Editor
 
     public override void OnInspectorGUI()
     {
-        HexLevelLayout layout = (HexLevelLayout)target;
+        var layout = (HexLevelLayout)target;
 
         EditorGUI.BeginChangeCheck();
 
@@ -35,10 +35,7 @@ public class HexLevelLayoutEditor : Editor
         if (selectedPaintKind == HexCellKind.Locked)
         {
             selectedRequiredClearCount = EditorGUILayout.IntField("Locked Clear Count", selectedRequiredClearCount);
-            if (selectedRequiredClearCount < 1)
-            {
-                selectedRequiredClearCount = 1;
-            }
+            selectedRequiredClearCount = Mathf.Max(1, selectedRequiredClearCount);
         }
 
         GUILayout.Space(8f);
@@ -79,30 +76,25 @@ public class HexLevelLayoutEditor : Editor
         DrawHexGrid(layout);
 
         if (GUI.changed)
-        {
             EditorUtility.SetDirty(layout);
-        }
     }
 
     private void DrawHexGrid(HexLevelLayout layout)
     {
-        Event currentEvent = Event.current;
+        var e = Event.current;
 
-        if (currentEvent.type == EventType.MouseUp)
-        {
+        if (e.type == EventType.MouseUp)
             isPainting = false;
-        }
 
-        float hexWidth = hexRadius * 2f;
-        float hexHeight = Mathf.Sqrt(3f) * hexRadius;
+        float hexW = hexRadius * 2f;
+        float hexH = Mathf.Sqrt(3f) * hexRadius;
+        float stepY = hexH + hexPadding;
+        float stepX = hexW * 0.75f + hexPadding;
 
-        float rowStepY = hexHeight + hexPadding;
-        float colStepX = (hexWidth * 0.75f) + hexPadding;
+        float neededW = layout.width * stepX + hexW;
+        float neededH = layout.height * stepY + hexH;
 
-        float neededWidth = (layout.width * colStepX) + hexWidth;
-        float neededHeight = (layout.height * rowStepY) + hexHeight;
-
-        Rect fullRect = GUILayoutUtility.GetRect(neededWidth, neededHeight, GUILayout.ExpandWidth(true));
+        Rect fullRect = GUILayoutUtility.GetRect(neededW, neededH, GUILayout.ExpandWidth(true));
 
         float startX = fullRect.xMin + hexRadius + 5f;
         float startY = fullRect.yMin + hexRadius + 5f;
@@ -113,62 +105,56 @@ public class HexLevelLayoutEditor : Editor
         {
             for (int x = 0; x < layout.width; x++)
             {
-                float offsetX = 0f;
+              
+                bool isOffsetRow = layout.offsetMode == HexGridOffsetMode.OddR
+                    ? (y % 2) == 1
+                    : (y % 2) == 0;
 
-                bool isOffsetRow;
-                if (layout.offsetMode == HexGridOffsetMode.OddR)
-                {
-                    isOffsetRow = (y % 2) == 1;
-                }
-                else
-                {
-                    isOffsetRow = (y % 2) == 0;
-                }
+                float offsetX = isOffsetRow ? stepX * 0.5f : 0f;
 
-                if (isOffsetRow)
-                {
-                    offsetX = colStepX * 0.5f;
-                }
+                float cx = startX + x * stepX + offsetX;
+                float cy = startY + y * stepY;
 
-                float centerX = startX + (x * colStepX) + offsetX;
-                float centerY = startY + (y * rowStepY);
+                var center = new Vector2(cx, cy);
+                var polygon = BuildHexPolygon(center, hexRadius);
 
-                Vector2 center = new Vector2(centerX, centerY);
-                Vector3[] polygon = BuildHexPolygon(center, hexRadius);
+                var kind = layout.GetKind(x, y);
+                int clearCount = layout.GetRequiredClearCount(x, y);
 
-                HexCellKind kind = layout.GetKind(x, y);
-                int requiredClearCount = layout.GetRequiredClearCount(x, y);
-
+            
                 Handles.color = GetFillColor(kind);
                 Handles.DrawAAConvexPolygon(polygon);
 
+                // kenar çizgisi
                 Handles.color = new Color(0f, 0f, 0f, 0.35f);
-                Handles.DrawAAPolyLine(2f, polygon[0], polygon[1], polygon[2], polygon[3], polygon[4], polygon[5], polygon[0]);
+                Handles.DrawAAPolyLine(2f,
+                    polygon[0], polygon[1], polygon[2],
+                    polygon[3], polygon[4], polygon[5], polygon[0]);
 
                 if (kind == HexCellKind.Locked)
                 {
-                    GUIStyle labelStyle = new GUIStyle(EditorStyles.boldLabel);
-                    labelStyle.alignment = TextAnchor.MiddleCenter;
-                    labelStyle.normal.textColor = Color.white;
-
-                    Rect labelRect = new Rect(centerX - 18f, centerY - 10f, 36f, 20f);
-                    GUI.Label(labelRect, requiredClearCount.ToString(), labelStyle);
+                    var style = new GUIStyle(EditorStyles.boldLabel)
+                    {
+                        alignment = TextAnchor.MiddleCenter,
+                        normal = { textColor = Color.white }
+                    };
+                    GUI.Label(new Rect(cx - 18f, cy - 10f, 36f, 20f), clearCount.ToString(), style);
                 }
 
-                bool hovered = IsPointInsidePolygon(currentEvent.mousePosition, polygon);
+                bool hovered = IsPointInsidePolygon(e.mousePosition, polygon);
 
-                if (hovered && currentEvent.type == EventType.MouseDown)
+                if (hovered && e.type == EventType.MouseDown)
                 {
                     isPainting = true;
-                    paintMouseButton = currentEvent.button;
+                    paintMouseButton = e.button;
                     PaintCell(layout, x, y, paintMouseButton);
-                    currentEvent.Use();
+                    e.Use();
                 }
 
-                if (hovered && isPainting && currentEvent.type == EventType.MouseDrag)
+                if (hovered && isPainting && e.type == EventType.MouseDrag)
                 {
                     PaintCell(layout, x, y, paintMouseButton);
-                    currentEvent.Use();
+                    e.Use();
                 }
             }
         }
@@ -178,39 +164,38 @@ public class HexLevelLayoutEditor : Editor
 
     private Vector3[] BuildHexPolygon(Vector2 center, float radius)
     {
-        Vector3[] points = new Vector3[6];
+        var points = new Vector3[6];
 
         for (int i = 0; i < 6; i++)
         {
-            float angleDeg = 60f * i - 30f;
-            float angleRad = angleDeg * Mathf.Deg2Rad;
-
-            float px = center.x + radius * Mathf.Cos(angleRad);
-            float py = center.y + radius * Mathf.Sin(angleRad);
-
-            points[i] = new Vector3(px, py, 0f);
+            // pointy-top hexagon, -30 derece rotasyon
+            float angle = Mathf.Deg2Rad * (60f * i - 30f);
+            points[i] = new Vector3(
+                center.x + radius * Mathf.Cos(angle),
+                center.y + radius * Mathf.Sin(angle),
+                0f
+            );
         }
 
         return points;
     }
 
+ 
     private bool IsPointInsidePolygon(Vector2 point, Vector3[] polygon)
     {
         bool inside = false;
-
         int j = polygon.Length - 1;
+
         for (int i = 0; i < polygon.Length; i++)
         {
-            Vector2 pi = new Vector2(polygon[i].x, polygon[i].y);
-            Vector2 pj = new Vector2(polygon[j].x, polygon[j].y);
+            var pi = new Vector2(polygon[i].x, polygon[i].y);
+            var pj = new Vector2(polygon[j].x, polygon[j].y);
 
-            bool intersect = ((pi.y > point.y) != (pj.y > point.y)) &&
-                             (point.x < (pj.x - pi.x) * (point.y - pi.y) / (pj.y - pi.y + 0.000001f) + pi.x);
+            bool intersects = ((pi.y > point.y) != (pj.y > point.y)) &&
+                              (point.x < (pj.x - pi.x) * (point.y - pi.y) / (pj.y - pi.y + 0.000001f) + pi.x);
 
-            if (intersect)
-            {
+            if (intersects)
                 inside = !inside;
-            }
 
             j = i;
         }
@@ -218,11 +203,12 @@ public class HexLevelLayoutEditor : Editor
         return inside;
     }
 
-    private void PaintCell(HexLevelLayout layout, int x, int y, int mouseButton)
+    private void PaintCell(HexLevelLayout layout, int x, int y, int button)
     {
         Undo.RecordObject(layout, "Paint Hex Cell");
 
-        if (mouseButton == 1)
+
+        if (button == 1)
         {
             layout.SetKind(x, y, HexCellKind.Empty);
             layout.SetRequiredClearCount(x, y, 0);
@@ -232,28 +218,19 @@ public class HexLevelLayoutEditor : Editor
         layout.SetKind(x, y, selectedPaintKind);
 
         if (selectedPaintKind == HexCellKind.Locked)
-        {
             layout.SetRequiredClearCount(x, y, selectedRequiredClearCount);
-        }
         else
-        {
             layout.SetRequiredClearCount(x, y, 0);
-        }
     }
 
     private Color GetFillColor(HexCellKind kind)
     {
-        if (kind == HexCellKind.Normal)
+        return kind switch
         {
-            return new Color(0.25f, 0.75f, 1f, 1f);
-        }
-
-        if (kind == HexCellKind.Locked)
-        {
-            return new Color(0.75f, 0.45f, 0.15f, 1f);
-        }
-
-        return new Color(0f, 0f, 0f, 0.10f);
+            HexCellKind.Normal => new Color(0.25f, 0.75f, 1f, 1f),
+            HexCellKind.Locked => new Color(0.75f, 0.45f, 0.15f, 1f),
+            _ => new Color(0f, 0f, 0f, 0.10f)  // empty
+        };
     }
 }
 #endif

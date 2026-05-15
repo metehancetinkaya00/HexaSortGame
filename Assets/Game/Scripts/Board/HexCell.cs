@@ -20,6 +20,7 @@ public class HexCell : MonoBehaviour
     public TMP_Text lockedCountText;
     public GameTileIce iceTile;
 
+
     private const int RequiredHitCount = 3;
     private int currentHitCount = 0;
 
@@ -30,7 +31,8 @@ public class HexCell : MonoBehaviour
         name = $"Cell {coord}";
     }
 
-    public void SetupCellState(HexCellKind newKind, int ignoredRequiredClearCount)
+  
+    public void SetupCellState(HexCellKind newKind, int requiredClearCount)
     {
         cellKind = newKind;
 
@@ -40,9 +42,7 @@ public class HexCell : MonoBehaviour
             currentHitCount = 0;
 
             if (iceTile != null)
-            {
                 iceTile.ResetIce();
-            }
         }
         else
         {
@@ -56,41 +56,30 @@ public class HexCell : MonoBehaviour
     public bool IsAvailable()
     {
         if (cellKind == HexCellKind.Empty)
-        {
             return false;
-        }
 
         if (cellKind == HexCellKind.Locked && !isUnlocked)
-        {
             return false;
-        }
 
         return true;
     }
 
+
     public bool DamageLock(int amount)
     {
         if (cellKind != HexCellKind.Locked)
-        {
             return false;
-        }
 
         if (isUnlocked)
-        {
             return false;
-        }
 
         if (amount <= 0)
-        {
             return false;
-        }
 
         for (int i = 0; i < amount; i++)
         {
             if (isUnlocked)
-            {
                 break;
-            }
 
             currentHitCount++;
 
@@ -106,10 +95,9 @@ public class HexCell : MonoBehaviour
             {
                 currentHitCount = RequiredHitCount;
 
+           
                 if (iceTile == null)
-                {
                     isUnlocked = true;
-                }
 
                 break;
             }
@@ -128,17 +116,10 @@ public class HexCell : MonoBehaviour
     public int GetRemainingHitCount()
     {
         if (isUnlocked)
-        {
             return 0;
-        }
 
         int remaining = RequiredHitCount - currentHitCount;
-        if (remaining < 0)
-        {
-            remaining = 0;
-        }
-
-        return remaining;
+        return Mathf.Max(0, remaining);
     }
 
     public void RefreshCellVisual()
@@ -150,27 +131,15 @@ public class HexCell : MonoBehaviour
             lockedCountText.gameObject.SetActive(showLocked);
 
             if (showLocked)
-            {
                 lockedCountText.text = GetRemainingHitCount().ToString();
-            }
         }
 
         if (iceTile != null && iceTile.gameObject != null)
         {
-            if (!showLocked)
-            {
-                if (iceTile.gameObject.activeSelf)
-                {
-                    iceTile.gameObject.SetActive(false);
-                }
-            }
-            else
-            {
-                if (!iceTile.gameObject.activeSelf)
-                {
-                    iceTile.gameObject.SetActive(true);
-                }
-            }
+          
+            bool shouldShow = showLocked;
+            if (iceTile.gameObject.activeSelf != shouldShow)
+                iceTile.gameObject.SetActive(shouldShow);
         }
     }
 }
